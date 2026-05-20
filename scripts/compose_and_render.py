@@ -2,8 +2,8 @@
 """
 Orchestrator for Phase 4 — production execution.
 
-This is mostly a guide / scaffold. The actual MCP calls happen through Claude Code,
-not from this script (Python can't directly invoke Claude Code MCP tools).
+This is mostly a guide / scaffold. The Seedance 2.0 API calls happen through Claude
+Code following SKILL.md Phase 4 instructions, not from this script.
 
 What this script DOES do:
   - Validates that all assets/*.mp4 files exist
@@ -11,11 +11,11 @@ What this script DOES do:
   - Runs npm run check + npm run render
   - Produces dist/main.mp4
 
-The MCP calls (create_video_from_avatar, create_video_agent) are handled by Claude
-Code following SKILL.md Phase 4 instructions, NOT this script.
+The Seedance A-roll generation (and any cinematic Seedance B-roll) is handled by
+Claude Code per SKILL.md § A-roll generation, NOT this script.
 
 Usage:
-    # After all HeyGen-generated MP4s are in place:
+    # After all Seedance-generated A-roll MP4s are in place:
     python3 compose_and_render.py storyboard.json
 """
 import argparse
@@ -64,8 +64,9 @@ def generate_composition(storyboard, project_root, template_path):
         tool = seg.get("tool", "")
         seg_type = seg.get("type", "")
 
-        if seg_type == "a-roll" or tool == "heygen-avatar":
-            # Insert <video> + <audio> for an A-roll segment
+        if seg_type == "a-roll":
+            # Insert <video> + <audio> for a Seedance A-roll segment
+            # (Seedance A-roll carries its own native audio)
             mp4 = f"assets/{sid}.mp4"
             elements.append(f"""
       <video id="{sid}" class="clip" data-start="{start}" data-duration="{duration}"
@@ -87,7 +88,8 @@ def generate_composition(storyboard, project_root, template_path):
                     f'      tl.set("#{sid}-caption", {{opacity: 0}}, {cap_start + cap_dur});'
                 )
 
-        elif tool == "heygen-video-agent" or seg_type == "b-roll-video-agent":
+        elif tool == "seedance" or seg_type == "b-roll-video":
+            # Cinematic Seedance B-roll — video only, no caption-track audio
             mp4 = f"assets/{sid}.mp4"
             elements.append(f"""
       <video id="{sid}" class="clip" data-start="{start}" data-duration="{duration}"

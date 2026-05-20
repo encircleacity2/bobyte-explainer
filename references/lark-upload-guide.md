@@ -147,9 +147,9 @@ Lark Drive:    https://example.larksuite.com/file/boxcnXXX
 Click to view, share, or download.
 
 Total cost:
-  HeyGen credits used:   52 (148 remaining)
-  Perplexity research:   $0.30
-  Other:                 free
+  Seedance 2.0 tokens:   <A-roll generation>
+  Volcengine music:      <1 track>
+  HyperFrames B-roll:    free
 
 Want me to also send this to a Lark chat? (yes / specify chat / no)
 ```

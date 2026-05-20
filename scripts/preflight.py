@@ -2,12 +2,16 @@
 """
 Pre-flight check for the bobyte-explainer skill.
 
-Verifies all environment dependencies for the 5-phase workflow.
+Verifies local tools, CLIs, and the onboarding config required by the
+5-phase workflow. Credentials live in ~/.bobyte-explainer/config.json
+(written by the onboarding flow), NOT in environment variables.
 """
+import json
 import os
 import shutil
 import subprocess
 import sys
+from pathlib import Path
 
 
 def check(label, ok, hint=""):
@@ -28,10 +32,10 @@ def run(cmd, timeout=10):
 
 
 print("=" * 60)
-print("Product-video skill — preflight check")
+print("bobyte-explainer skill — preflight check")
 print("=" * 60)
 
-print("\n[1/4] Local tools")
+print("\n[1/3] Local tools")
 
 ok_node, node_v, _ = run(["node", "--version"])
 node_major = int(node_v.lstrip("v").split(".")[0]) if ok_node and node_v else 0
@@ -47,37 +51,50 @@ check("ffmpeg", ok_ff, "brew install ffmpeg / apt install ffmpeg")
 ok_ffprobe = shutil.which("ffprobe") is not None
 check("ffprobe", ok_ffprobe, "comes with ffmpeg")
 
-print("\n[2/4] CLIs")
+print("\n[2/3] CLIs")
 
 ok_claude = shutil.which("claude") is not None
 check("Claude Code CLI", ok_claude, "install from https://docs.claude.com/en/docs/claude-code/overview")
 
 ok_lark = shutil.which("lark-cli") is not None
-check("lark-cli", ok_lark, "npm install -g @larksuite/cli")
+check("lark-cli (only needed for Lark/Feishu doc input + upload)", ok_lark,
+      "npm install -g @larksuite/cli")
 
-print("\n[3/4] MCP servers (via Claude Code)")
+print("\n[3/3] Onboarding config")
 
-if ok_claude:
-    ok_mcp, mcp_out, _ = run(["claude", "mcp", "list"], timeout=15)
-    has_heygen = "heygen" in mcp_out.lower() if ok_mcp else False
-    check("HeyGen MCP server registered", has_heygen,
-          "claude mcp add --transport http -s user heygen https://mcp.heygen.com/mcp/v1/")
-else:
-    print("  (skipped — claude CLI not available)")
+cfg_path = Path.home() / ".bobyte-explainer" / "config.json"
+ok_cfg = cfg_path.exists()
+cfg = {}
+if ok_cfg:
+    try:
+        cfg = json.loads(cfg_path.read_text())
+    except (json.JSONDecodeError, OSError):
+        ok_cfg = False
 
-print("\n[4/4] Environment variables")
+check(f"config.json present ({cfg_path})", ok_cfg,
+      "run the skill — the onboarding flow will create it")
 
-key = os.environ.get("PERPLEXITY_API_KEY", "")
-ok_pplx = key.startswith("pplx-") if key else False
-check("PERPLEXITY_API_KEY set", ok_pplx,
-      "export PERPLEXITY_API_KEY='pplx-...' from https://perplexity.ai/settings/api")
-if ok_pplx:
-    print(f"      key prefix: {key[:8]}...")
+required = ["modelark_api_key", "iam_ak", "iam_sk",
+            "portrait_image", "reference_video", "output_folder"]
+ok_fields = True
+if ok_cfg:
+    for field in required:
+        present = bool(cfg.get(field))
+        ok_fields = ok_fields and present
+        check(f"  config.{field}", present, "re-run onboarding to set this")
+    # portrait_image and reference_video should point at real files
+    for field in ("portrait_image", "reference_video"):
+        val = cfg.get(field, "")
+        if val:
+            exists = Path(os.path.expanduser(val)).exists()
+            ok_fields = ok_fields and exists
+            check(f"  {field} file exists", exists, f"missing: {val}")
 
 print()
 print("=" * 60)
 
-if all([ok_node and node_major >= 22, ok_python, ok_ff, ok_lark, ok_pplx]):
+if all([ok_node and node_major >= 22, ok_python, ok_ff, ok_ffprobe,
+        ok_cfg, ok_fields]):
     print("All systems ready. Proceed with Phase 1 (intake).")
 else:
     print("Some prerequisites are missing. Fix the items marked ✗ above before continuing.")

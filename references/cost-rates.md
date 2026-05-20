@@ -2,143 +2,69 @@
 
 Current pricing (as of May 2026). Verify before each project — these change.
 
----
-
-## HeyGen Premium Credits (web plan)
-
-When using MCP path (OAuth), all HeyGen operations consume Premium Credits from the user's web plan.
-
-### Plan tiers
-
-| Plan | Monthly cost | Credits/month | $/credit equivalent |
-|------|------------|--------------|--------------------|
-| Free | $0 | 10 | n/a (testing only) |
-| Creator (annual) | $24 | 200 | $0.12 |
-| Creator (monthly) | $29 | 200 | $0.145 |
-| Pro | $99 | 2000 | $0.0495 |
-| Business | varies | 1000+ shared | varies |
-
-Premium Credit Pack add-on: $15/month for 300 extra credits (or $150/year). Stack multiple if needed.
-
-### Credits per operation
-
-| Operation | Credits per second | Credits per 2.5s segment | Credits per 30s |
-|-----------|-------------------|------------------------|----------------|
-| Avatar V (Digital Twin from web) | ~6.7 | 17 | 200 |
-| Avatar IV (Photo Avatar) | ~6.7 | 17 | 200 |
-| Video Agent | ~2 | 5 | 60 |
-| Avatar III (older, cheaper) | ~3 | 8 | 100 |
-| Lipsync | ~2 | 5 | 60 |
-| Video Translation | ~3 per source second | varies | 90 |
-
-### Quick math examples
-
-- 15-second video, 3× A-roll (7s total) + 1× Video Agent (2.5s) = 47 + 5 = **52 credits**
-- 30-second video, 4× A-roll (10s total) + 2× Video Agent (5s) = 67 + 10 = **77 credits**
-
-### Buying more credits without upgrading plan
-
-If user is on Creator and runs low: buy 300-credit pack at $15/month. Cancel anytime.
+The skill uses three paid/free services: **Seedance 2.0** (A-roll + optional cinematic
+B-roll), **Seedream 4.5** (optional portrait restyle), **Volcengine music** (BGM).
+HyperFrames B-roll is free.
 
 ---
 
-## HeyGen Direct API (x-api-key path)
+## Seedance 2.0 (BytePlus ModelArk) — A-roll + cinematic B-roll
 
-Used only if user can't or doesn't want MCP. Independent billing pool.
+Token-based pricing on the BytePlus ModelArk account. A 5–10 s 720p 9:16 clip is
+inexpensive; cost scales with duration and resolution. See the ModelArk console for the
+current token rate and the account balance.
 
-| Operation | Cost per second |
-|-----------|----------------|
-| Photo Avatar (Avatar IV) | $0.05 |
-| Digital Twin via API (Enterprise only) | $0.0667 |
-| Video Agent | $0.0333 |
-| Voices - Starfish TTS | $0.000667 |
-| Lipsync - Speed | $0.0333 |
-| Video Translation - Speed | $0.0333 |
+- A-roll: typically 2 clips per video (hook + CTA), 5–10 s each.
+- Cinematic B-roll: only when a non-person atmospheric shot is needed — most B-roll is
+  free HyperFrames instead.
 
-Minimum top-up: $5. Pay-as-you-go.
-
-15-second video via Photo Avatar API path: ~$0.55.
+Rough planning figure: a ~90 s explainer with 2 short A-roll clips is a small token spend
+(single-digit USD-equivalent). Confirm against the live ModelArk rate.
 
 ---
 
-## Perplexity Sonar API
+## Seedream 4.5 (BytePlus ModelArk) — portrait restyle
 
-Used in Phase 2 for social listening research.
-
-### Models
-
-| Model | Best for | Cost per request (typical) |
-|-------|---------|---------------------------|
-| sonar | Quick fact lookup | $0.005-0.01 |
-| sonar-pro | Research with citations (recommended) | $0.05-0.08 |
-| sonar-reasoning | Complex multi-step | $0.10-0.20 |
-| sonar-deep-research | Comprehensive reports | $0.30-1.00 |
-
-### Pricing model
-
-Token-based:
-- Small models: ~$0.20 / 1M tokens
-- Medium / sonar-pro: ~$0.60-1.00 / 1M tokens
-
-A typical Phase 2 research with 5 sonar-pro queries:
-- 5 queries × ~$0.06 average = **~$0.30 total**
-
-If user is on Perplexity Pro subscription: $5/month included credits cover this entirely.
-
-### Endpoint
-
-```
-POST https://api.perplexity.ai/chat/completions
-Headers:
-  Authorization: Bearer pplx-...
-  Content-Type: application/json
-Body:
-  {
-    "model": "sonar-pro",
-    "messages": [{"role": "user", "content": "<query>"}]
-  }
-```
-
-OpenAI-SDK compatible.
+Per-image generation cost on the same ModelArk account. The Phase 2 restyle generates
+**4 images** for review; budget for 4 image generations per restyle round (plus more if
+the user asks for another round). Small relative to video cost.
 
 ---
 
-## HyperFrames
+## Volcengine music API — BGM
 
-**$0.** Local headless Chromium render.
+Per-generation cost for one music track. The similarity-detection check occasionally
+rejects a generation; a retry then costs one more generation. Budget for 1–3 generations
+per video. Small.
 
-The only "cost" is local CPU + ~140 MB Chromium download (one-time).
+---
+
+## HyperFrames — B-roll
+
+**$0.** Local headless Chromium render. The only "cost" is local CPU + a one-time
+~140 MB Chromium download.
 
 ---
 
 ## Lark CLI / Drive
 
-**$0** for file uploads and downloads via the user's already-paid Lark plan.
-
-Free Lark workspace tiers cap at 10GB storage. Each 9:16 720p 15s MP4 is roughly 8-15 MB.
-
----
-
-## Cost decision rules for storyboard
-
-When designing the storyboard in Phase 3:
-
-1. **If user has plenty of credits** (>100): Use Video Agent freely for atmospheric segments.
-2. **If user has tight credits** (~50-100): Limit Video Agent to 1 segment max. Replace others with HyperFrames.
-3. **If user is on Free plan or out of credits**: Skip Video Agent entirely. All B-roll = HyperFrames + screenshots.
-
-Always show credit balance BEFORE the cost breakdown so user knows what they have to work with.
+**$0** for uploads/downloads via the user's existing Lark plan. A 9:16 1080p ~90 s MP4 is
+roughly 8–12 MB.
 
 ---
+
+## Cost decision rules for the Phase 3 storyboard
+
+1. **Most B-roll → HyperFrames** ($0). Reserve Seedance B-roll for genuine cinematic /
+   atmospheric shots only.
+2. **A-roll** — keep to ~2 clips (hook + CTA), 5–10 s each. Extra A-roll clips add token cost.
+3. Always show the cost estimate in the Phase 3 storyboard so the user approves with eyes open.
 
 ## Cost reduction tactics
 
-If the proposed storyboard exceeds budget:
+If the storyboard cost is too high:
+1. Convert any Seedance B-roll segment to HyperFrames (saves the whole clip's tokens).
+2. Shorten or drop one A-roll clip.
+3. Reduce overall video length.
 
-1. **Convert Video Agent → HyperFrames** for any segment where exact accuracy matters more than vibe (saves 5-10 credits per segment).
-2. **Shorten A-roll segments** by 0.5s each (saves ~3 credits per segment).
-3. **Use Avatar III instead of Avatar V** if quality drop is acceptable (saves ~1.5 credits per second).
-4. **Reduce video length** from 30s to 15s (cuts cost roughly in half).
-5. **Use stock screenshots over generated B-roll** wherever the product UI is the focus.
-
-Always show the user the cost-reduced alternative alongside the original — let them choose.
+Always show the user the cost-reduced alternative alongside the original.

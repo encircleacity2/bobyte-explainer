@@ -111,32 +111,37 @@ Sync the wordmark to a meaningful audio cue: a key word in the avatar's line, a 
 
 ---
 
-## 4. Seedance frame-rate alignment
+## 4. Frame-rate alignment
 
-Seedance always returns video at **24 fps**. HeyGen avatar videos are at **25 fps**. ffmpeg `concat` filter handles mismatched framerates (re-encodes to a common rate), but `concat -c copy` does not.
-
-**Always re-encode each Seedance clip to 25 fps before concat:**
+Seedance A-roll typically returns video at **24 fps**; the HyperFrames render is **30 fps**.
+The ffmpeg `concat` filter handles mismatched framerates (re-encodes to a common rate),
+but `concat -c copy` does not. **Normalize every clip to a common 25 fps** before concat:
 
 ```bash
-ffmpeg -y -i seedance_input.mp4 -i tts_audio.wav \
-  -c:v libx264 -pix_fmt yuv420p -r 25 -preset fast -crf 20 \
+ffmpeg -y -i seedance_aroll.mp4 \
+  -vf "scale=1080:1920,fps=25" \
+  -c:v libx264 -pix_fmt yuv420p -preset medium -crf 18 \
   -c:a aac -b:a 192k -ar 48000 \
-  -filter_complex "[1:a]apad=whole_dur=5.04[a]" -map 0:v -map "[a]" -t 5.04 \
-  seedance_25fps.mp4
+  aroll_25fps.mp4
 ```
+
+The Seedance A-roll already carries its own audio (generated voice, or the reference
+video's voice in r2v mode) — keep it; do not strip or replace it.
 
 ---
 
-## 5. TTS-first segment timing
+## 5. Actual-duration timing
 
-The original storyboard durations are estimates; the actual HeyGen TTS output may run longer or shorter. Always:
+Storyboard durations are estimates; the actual Seedance A-roll clips run slightly longer
+or shorter (a 5–10s request often returns ~5s). Always:
 
-1. Submit HeyGen TTS first.
-2. Read `duration` from the response (e.g., 2.93s for "Looks great. Until you subdivide.").
-3. Size the visual segment to `tts_duration + 0.4s` breathing room.
-4. Update `storyboard.json` with the actual duration so cost/length stays accurate.
+1. After each A-roll task succeeds, download the clip and `ffprobe` its real duration.
+2. Build the final timeline from the **actual** A-roll durations — the HyperFrames render
+   uses the planned gap, and the concat absorbs the small drift (a 90s plan landing at
+   ~91–94s is fine).
+3. Update `storyboard.json` with actual durations so cost/length stays accurate.
 
-For A-roll videos, the avatar render duration is determined by HeyGen's TTS internally — read it back from `get_video.duration` and update the timeline accordingly.
+Seedance A-roll has native audio baked in — there is no separate TTS step to time against.
 
 ---
 
@@ -182,7 +187,7 @@ See `references/volcengine-music-api.md` for the full pattern. Key points:
 
 ## 9. Concat strategy: filter, not demuxer
 
-Always use the **concat filter** (re-encodes) for the final assembly when stitching segments from different sources (HeyGen + Seedance + HyperFrames + TTS).
+Always use the **concat filter** (re-encodes) for the final assembly when stitching segments from different sources (Seedance A-roll + HyperFrames B-roll slices).
 
 **Why not `-c copy`:**
 - AAC frame-boundary clicks → perceived as cut-offs at segment seams
@@ -239,11 +244,9 @@ Save every paid asset in `assets/` so iterations don't re-spend credits. Save th
     render_benchmark_panel.py  # data viz for split-screen
     render_wordmark.py         # brand reveal frames
   assets/
-    aroll-N.mp4                # HeyGen avatar segments
-    broll-segN-silent.mp4      # Seedance / HF intermediate
-    broll-segN.mp4             # post-VO-merge B-roll
-    vo-segN.wav                # HeyGen TTS audio
-    benchmark_panel.mp4        # HF panel videos
+    aroll-N.mp4                # Seedance 2.0 A-roll segments (with native audio)
+    hf-render.mp4              # full HyperFrames B-roll render
+    hf-sliceN.mp4              # HyperFrames slices between A-roll inserts
     music_volc_raw.wav         # raw Volcengine output
     music_volc.m4a             # trimmed + faded music bed
     anno_N.png                 # annotation overlays

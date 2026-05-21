@@ -3,8 +3,8 @@
 Current pricing (as of May 2026). Verify before each project — these change.
 
 The skill uses three paid/free services: **Seedance 2.0** (A-roll + optional cinematic
-B-roll), **Seedream 4.5** (optional portrait restyle), **Volcengine music** (BGM).
-HyperFrames B-roll is free.
+B-roll), **Seedream 4.5** (optional portrait restyle), **Volcengine music** (optional BGM
+— only when AI music is enabled in onboarding). HyperFrames B-roll is free.
 
 ---
 
@@ -33,9 +33,10 @@ the user asks for another round). Small relative to video cost.
 
 ## Volcengine music API — BGM
 
-Per-generation cost for one music track. The similarity-detection check occasionally
-rejects a generation; a retry then costs one more generation. Budget for 1–3 generations
-per video. Small.
+Optional — incurred only when `config.music_enabled` is `true`. Per-generation cost for one
+music track. The similarity-detection check occasionally rejects a generation; a retry then
+costs one more generation. Budget for 1–3 generations per video. Small. If AI music is
+disabled, this cost is $0.
 
 ---
 

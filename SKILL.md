@@ -1,9 +1,9 @@
 ---
-name: bobyte-explainer
+name: explainer-video
 description: Turns product information — Lark/Feishu docs, GitHub repos, screenshots, PDFs, free-form text — into a polished 9:16 vertical explainer video that combines a Seedance 2.0 AI digital-human A-roll with animated HyperFrames B-roll and AI background music. Use whenever the user wants to make a short-form vertical explainer / announcement / launch video about a product, feature, repo, or skill. Trigger phrases: "make an explainer video about X", "produce a Shorts/TikTok video for this", "turn this repo into a video", "create a product launch reel", or any request to generate a vertical product video.
 ---
 
-# bobyte-explainer — Product explainer video pipeline
+# explainer-video — Product explainer video pipeline
 
 Turns product inputs into a polished **9:16 vertical explainer video**:
 - **A-roll** — an AI digital-human talking-head, generated entirely with the **Seedance 2.0** API (BytePlus ModelArk).
@@ -19,7 +19,7 @@ The pipeline is gated: the user must approve the storyboard before any paid gene
 Before doing anything else, check whether the user has onboarded:
 
 ```bash
-cat ~/.bobyte-explainer/config.json 2>/dev/null
+cat ~/.explainer-video/config.json 2>/dev/null
 ```
 
 - **File missing or empty** → run the **§ Onboarding** flow below, then continue to the per-task workflow.
@@ -34,9 +34,15 @@ cat ~/.bobyte-explainer/config.json 2>/dev/null
   "portrait_image": "/abs/path/to/personal-photo.jpg",
   "reference_video": "/abs/path/to/portrait-video-with-audio.mov",
   "output_folder": "/abs/path/to/save/folder",
+  "music_enabled": true,
+  "volc_music_ak": "<Volcengine access key — only present if music_enabled is true>",
+  "volc_music_sk": "<Volcengine secret key — only present if music_enabled is true>",
   "onboarded_at": "YYYY-MM-DD"
 }
 ```
+
+When `music_enabled` is `false`, `volc_music_ak` / `volc_music_sk` are omitted and
+the per-task workflow skips music generation entirely.
 
 ---
 
@@ -50,25 +56,48 @@ When `config.json` is missing, walk the user through this once. Keep it friendly
 > Feed it Lark/Feishu docs (requires the Lark CLI to be installed and authorized),
 > GitHub repos, screenshots, PDFs, or a plain description — and it generates, in one
 > flow, a complete video: an AI digital-human **A-roll** (you, on camera) plus animated
-> **B-roll** scenes, with background music. Let's get you set up — it takes a minute."
+> **B-roll** scenes, with optional background music. Let's get you set up — it takes a minute."
 
-**2. Collect the ModelArk API key.**
+**2. Choose how to provide credentials.** Ask:
+
+> "You can onboard two ways:
+>  **(a) Credential file** — paste the path to a filled-in copy of `credentials.template.md`.
+>       Handy if a teammate already sent you a completed one.
+>  **(b) Step-by-step** — I'll ask for each item in turn.
+> Which do you prefer? (a / b)"
+
+- A blank template lives at `<skill>/credentials.template.md`. Tell the user they can fill
+  it and send it to teammates so they can onboard in one step.
+- **If (a):** read the file, parse the `key: value` lines, and validate that every required
+  field is present and non-placeholder. Write `config.json` from it. If anything is missing
+  or still a placeholder, fall back to asking **only** for the missing items step-by-step.
+- **If (b):** continue with steps 3–7 below.
+
+**3. Collect the ModelArk API key.**
 Ask: *"Paste your BytePlus ModelArk API key (used to generate Seedance 2.0 video and Seedream images)."*
 
-**3. Collect the BytePlus IAM AK / SK.**
+**4. Collect the BytePlus IAM AK / SK.**
 Ask: *"Paste your BytePlus IAM access key (AK) and secret key (SK). These are used to operate the ModelArk asset library and TOS object storage."*
 
-**4. Collect the personal portrait assets.**
+**5. Collect the personal portrait assets.**
 Ask: *"Provide two files for the digital-human A-roll:
   (a) a clear front-facing personal photo, and
   (b) a short portrait video of yourself talking, WITH audio.
 The photo drives the avatar's appearance; the video drives the voice and facial motion."*
 Record the absolute paths.
 
-**5. Ask for the preferred output folder.**
+**6. Ask for the preferred output folder.**
 Ask: *"Where should finished videos be saved? (press Enter for the default `~/Downloads`)"*
 
-**6. Write the config** to `~/.bobyte-explainer/config.json` (create the dir, `chmod 600` the file). Confirm: *"Setup complete — you're ready to make videos."*
+**7. Ask about automatic AI music.**
+Ask: *"Do you want automatic AI background music for your videos? (yes / no)"*
+- **If yes** → set `music_enabled: true` and ask:
+  *"Paste your Volcengine access key (AK) and secret key (SK) — used by the Volcengine
+  music model to generate background tracks."* Record `volc_music_ak` / `volc_music_sk`.
+- **If no** → set `music_enabled: false` and skip the Volcengine keys. The per-task
+  workflow will produce videos without a music bed.
+
+**8. Write the config** to `~/.explainer-video/config.json` (create the dir, `chmod 600` the file). Confirm: *"Setup complete — you're ready to make videos."*
 
 > Per-task steps (portrait restyle, storyboard review) are NOT part of onboarding — they run on every task. See § Per-task workflow.
 
@@ -120,9 +149,17 @@ Before any paid generation, design and present:
    - **A-roll (Seedance 2.0)** — talking-head segments. Typically a hook/intro and a closing CTA. Keep each 5–10s.
    - **B-roll (HyperFrames)** — everything else: typographic scenes, skill/feature demos, data callouts, kinetic-typography hooks, brand reveal. Rendered locally, no per-clip cost.
 
-4. **Cost estimate** — Seedance tokens (A-roll), Volcengine music, HyperFrames $0. Show it.
+4. **Music plan** — only if `config.music_enabled` is `true`. From the task context
+   (the product brief, the storyboard mood, the pacing) **draft a suggested music
+   generation prompt** and present it as the default. Example:
+   *"Suggested music prompt: 'upbeat modern tech-product launch, driving synth, optimistic,
+   instrumental, builds to an energetic finish'. Use this, or give me your own?"*
+   The user can accept the suggestion or replace it. If `music_enabled` is `false`, state
+   that the video will have no music bed and skip this item.
 
-5. **PRESENT EVERYTHING. STOP. WAIT FOR EXPLICIT APPROVAL** ("approved" / "yes" / "proceed"). "Looks good" is not approval — confirm. On change requests, revise and re-present.
+5. **Cost estimate** — Seedance tokens (A-roll), Volcengine music (if enabled), HyperFrames $0. Show it.
+
+6. **PRESENT EVERYTHING. STOP. WAIT FOR EXPLICIT APPROVAL** ("approved" / "yes" / "proceed"). "Looks good" is not approval — confirm. On change requests, revise and re-present.
 
 ### Phase 4 — Production
 
@@ -131,8 +168,8 @@ Runs only after Phase 3 approval.
 1. **Workspace** — `mkdir -p` a project dir; `cp -r <skill>/assets/* .`; `npm install` (downloads HyperFrames).
 2. **A-roll** — generate every talking-head segment with Seedance 2.0. See § A-roll generation.
 3. **B-roll** — build the HyperFrames composition (`index.html`); `npm run render`. See `references/production-techniques.md`.
-4. **Music** — generate BGM with the Volcengine API. See `references/volcengine-music-api.md`.
-5. **Assemble** — slice the HyperFrames render, concat with the A-roll segments, mix the music bed (sidechain-duck the music under any A-roll voice). See `references/production-techniques.md`.
+4. **Music** — only if `config.music_enabled` is `true`: generate BGM with the Volcengine API, using the music prompt approved in Phase 3. See `references/volcengine-music-api.md`. If `music_enabled` is `false`, skip this step.
+5. **Assemble** — slice the HyperFrames render, concat with the A-roll segments. If music was generated, mix the music bed (sidechain-duck the music under any A-roll voice). See `references/production-techniques.md`.
 
 ### Phase 5 — Deliver
 
@@ -183,7 +220,8 @@ When the storyboard's A-roll segments need specific spoken lines, **put the scri
 
 ## Security and safety
 
-- All credentials (ModelArk key, IAM AK/SK) come from `~/.bobyte-explainer/config.json` (mode 600) — never hardcode, never print in full.
+- All credentials (ModelArk key, BytePlus IAM AK/SK, and — if music is enabled — Volcengine music AK/SK) come from `~/.explainer-video/config.json` (mode 600) — never hardcode, never print in full.
+- A blank `credentials.template.md` is shipped for teammates to fill in and share; a filled-in copy is sensitive — treat it like the config file and never commit or upload it.
 - All paid operations require the Phase 3 approval gate. If asked to skip it, push back.
 - Never upload or share a finished video without explicit user confirmation.
 - Respect content moderation — never attempt to bypass real-person or copyright checks.

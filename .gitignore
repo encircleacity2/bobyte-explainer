@@ -14,3 +14,8 @@ projects/
 *credentials*.json
 .env
 .env.local
+
+# Filled-in onboarding credential sheets — never commit. The BLANK template
+# (credentials.template.md) IS tracked; only filled-in copies are ignored.
+*credentials*.md
+!credentials.template.md

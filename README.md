@@ -1,4 +1,4 @@
-# bobyte-explainer
+# explainer-video
 
 A [Claude Code](https://claude.ai/code) skill that turns product information — Lark/Feishu
 docs, GitHub repos, screenshots, PDFs, or a plain description — into a polished **9:16
@@ -8,7 +8,7 @@ Every video combines:
 - **A-roll** — an AI digital-human talking-head, generated entirely with the **Seedance 2.0**
   API (BytePlus ModelArk).
 - **B-roll** — animated typographic / data scenes rendered locally with **HyperFrames**.
-- **Music** — AI background music from the **Volcengine** music API.
+- **Music** — *optional* AI background music from the **Volcengine** music API.
 
 ## Pipeline overview
 
@@ -30,14 +30,23 @@ Every video combines:
 ## Onboarding (first run)
 
 The first time the skill runs it walks the user through a one-time English-language setup
-and writes `~/.bobyte-explainer/config.json`:
+and writes `~/.explainer-video/config.json`. It first asks **how** you want to provide
+credentials:
 
-1. A short explanation of what the skill does.
-2. The **BytePlus ModelArk API key** (Seedance video + Seedream images).
-3. The **BytePlus IAM AK / SK** (asset library + TOS object storage).
-4. A **personal photo** and a **portrait video with audio** — the appearance and the
+- **Credential file** — fill in a copy of [`credentials.template.md`](credentials.template.md)
+  and give the skill its path. This is the fast path, and the template is designed to be
+  emailed to teammates so they can onboard in one step.
+- **Step-by-step** — the skill prompts for each item interactively.
+
+Either way it collects:
+
+1. The **BytePlus ModelArk API key** (Seedance video + Seedream images).
+2. The **BytePlus IAM AK / SK** (asset library + TOS object storage).
+3. A **personal photo** and a **portrait video with audio** — the appearance and the
    voice/facial-motion references for the digital human.
-5. The preferred **output folder** (default `~/Downloads`).
+4. The preferred **output folder** (default `~/Downloads`).
+5. Whether to enable **automatic AI music**. If yes, the **Volcengine music AK / SK**;
+   if no, music generation is skipped on every task.
 
 ## Per-task workflow
 
@@ -50,7 +59,8 @@ and writes `~/.bobyte-explainer/config.json`:
   segment-by-segment storyboard with A-roll / B-roll routing and a cost estimate. Present
   and **wait for explicit approval**.
 - **Phase 4 — Production.** Generate the Seedance 2.0 A-roll, render the HyperFrames
-  B-roll, generate Volcengine music, assemble (slice + concat + sidechain-ducked mix).
+  B-roll, generate Volcengine music (if AI music is enabled), assemble (slice + concat +
+  sidechain-ducked mix).
 - **Phase 5 — Deliver.** Save the MP4 to the configured output folder; optionally upload
   to Lark with confirmation.
 
@@ -69,6 +79,7 @@ the `asset://<AssetId>` scheme — see `references/seedance-api.md`.
 ## Requirements
 
 - A BytePlus ModelArk API key and BytePlus IAM AK/SK.
+- A Volcengine music AK/SK — only if you enable automatic AI background music.
 - Node 18+ and npm (HyperFrames renderer).
 - Python 3.11+ with `requests`, `Pillow`, `volcengine` (`pip install --break-system-packages ...`).
 - ffmpeg.
@@ -96,7 +107,7 @@ the `asset://<AssetId>` scheme — see `references/seedance-api.md`.
 
 ## Installing as a Claude Code skill
 
-Place this directory at `~/.claude/skills/bobyte-explainer/`. Claude Code auto-discovers it
+Place this directory at `~/.claude/skills/explainer-video/`. Claude Code auto-discovers it
 on next launch. Trigger phrases:
 
 > "Make an explainer video about <product>"

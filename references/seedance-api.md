@@ -2,7 +2,7 @@
 
 Seedance 2.0 (Dreamina Seedance 2.0) is a BytePlus ModelArk video-generation model. This skill uses it for **all A-roll** (digital-human talking-head) and optionally for cinematic B-roll.
 
-Credentials come from `~/.bobyte-explainer/config.json`:
+Credentials come from `~/.explainer-video/config.json`:
 - `modelark_api_key` — Bearer token for the video/image generation REST API.
 - `iam_ak`, `iam_sk` — BytePlus IAM keys for the SigV4-signed asset-library API and for TOS.
 

@@ -2,11 +2,18 @@
 
 Generate copyright-free background music for the video using Volcengine's AI music model. Pure instrumental (no vocals, no lyrics).
 
-Required env vars:
-- `VOLC_MUSIC_AK` — Volcengine access key
-- `VOLC_MUSIC_SK` — Volcengine secret key (base64-encoded; pass raw to the SDK without decoding)
+**This step runs only when `config.music_enabled` is `true`.** If AI music is disabled in
+`~/.explainer-video/config.json`, skip music generation entirely.
 
-Do NOT hardcode credentials.
+Credentials come from `~/.explainer-video/config.json`:
+- `volc_music_ak` — Volcengine access key
+- `volc_music_sk` — Volcengine secret key (base64-encoded; pass raw to the SDK without decoding)
+
+Do NOT hardcode credentials. Do NOT print them in full.
+
+**Music prompt:** the per-task workflow drafts a suggested music prompt from the product
+brief and storyboard context (see SKILL.md Phase 3 "Music plan") and the user approves or
+edits it before this step runs. Use the approved prompt as the `Prompt` field below.
 
 Docs:
 - Generate BGM: https://www.volcengine.com/docs/84992/2100970
@@ -33,9 +40,12 @@ Auth: Volcengine SigV4 (X-Date, X-Content-Sha256, Authorization headers)
 
 ```python
 import json, requests
+from pathlib import Path
 from volcengine.auth.SignerV4 import SignerV4
 from volcengine.Credentials import Credentials
 from volcengine.base.Request import Request
+
+CFG = json.loads((Path.home() / ".explainer-video" / "config.json").read_text())
 
 def call_volc(action, body_dict):
     body = json.dumps(body_dict)
@@ -44,8 +54,8 @@ def call_volc(action, body_dict):
     req.path = "/"; req.query = {"Action": action, "Version": "2024-08-12"}
     req.headers = {"Content-Type": "application/json", "Host": req.host}
     req.body = body
-    SignerV4.sign(req, Credentials(os.environ["VOLC_MUSIC_AK"],
-                                   os.environ["VOLC_MUSIC_SK"],
+    SignerV4.sign(req, Credentials(CFG["volc_music_ak"],
+                                   CFG["volc_music_sk"],
                                    "imagination", "cn-beijing"))
     r = requests.post(f"https://{req.host}/", params=req.query, data=body, headers=req.headers)
     return r.json()

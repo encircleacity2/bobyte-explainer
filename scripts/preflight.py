@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-Pre-flight check for the bobyte-explainer skill.
+Pre-flight check for the explainer-video skill.
 
 Verifies local tools, CLIs, and the onboarding config required by the
-5-phase workflow. Credentials live in ~/.bobyte-explainer/config.json
+5-phase workflow. Credentials live in ~/.explainer-video/config.json
 (written by the onboarding flow), NOT in environment variables.
 """
 import json
@@ -32,7 +32,7 @@ def run(cmd, timeout=10):
 
 
 print("=" * 60)
-print("bobyte-explainer skill — preflight check")
+print("explainer-video skill — preflight check")
 print("=" * 60)
 
 print("\n[1/3] Local tools")
@@ -62,7 +62,7 @@ check("lark-cli (only needed for Lark/Feishu doc input + upload)", ok_lark,
 
 print("\n[3/3] Onboarding config")
 
-cfg_path = Path.home() / ".bobyte-explainer" / "config.json"
+cfg_path = Path.home() / ".explainer-video" / "config.json"
 ok_cfg = cfg_path.exists()
 cfg = {}
 if ok_cfg:
@@ -89,6 +89,15 @@ if ok_cfg:
             exists = Path(os.path.expanduser(val)).exists()
             ok_fields = ok_fields and exists
             check(f"  {field} file exists", exists, f"missing: {val}")
+    # AI music is optional — Volcengine keys are required only when it is enabled
+    if cfg.get("music_enabled"):
+        for field in ("volc_music_ak", "volc_music_sk"):
+            present = bool(cfg.get(field))
+            ok_fields = ok_fields and present
+            check(f"  config.{field} (music enabled)", present,
+                  "re-run onboarding, or set music_enabled=false")
+    else:
+        check("  AI music disabled — Volcengine keys not required", True)
 
 print()
 print("=" * 60)

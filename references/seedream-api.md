@@ -4,7 +4,7 @@ Seedream 4.5 is the BytePlus ModelArk image model. This skill uses it in **Phase
 optionally restyle the user's portrait (new outfit / environment / lighting) before
 generating the A-roll.
 
-Credentials: `modelark_api_key` from `~/.bobyte-explainer/config.json`.
+Credentials: `modelark_api_key` from `~/.explainer-video/config.json`.
 
 ---
 

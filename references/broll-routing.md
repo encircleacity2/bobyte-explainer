@@ -1,8 +1,30 @@
 # B-roll routing — HyperFrames vs Seedance vs Hybrid
 
 Picking the right tool for each B-roll segment is the most consequential storyboard
-decision. The rules below are based on what each tool does well. (A-roll is always
-Seedance 2.0 — see `SKILL.md`. This file is about **B-roll**.)
+decision. The rules below are based on what each tool does well.
+
+> **Mode-aware** (PR #1): the storyboard's `mode` field decides whether A-roll exists at all.
+> - `pure-broll-product-demo` → **NO A-roll**, skip § A-roll routing entirely. All content is HyperFrames (occasionally Seedance for atmospheric B-roll if budget allows).
+> - `aroll-broll-hybrid` → A-roll for hook + CTA only, B-roll is the bulk.
+> - `aroll-only` → Avatar fills the whole video, B-roll is minimal/optional.
+
+This file is about **B-roll routing**. For A-roll generation, see `SKILL.md` § A-roll generation (skipped in pure-broll mode).
+
+## Pure-broll-product-demo default scene structure
+
+For `mode: "pure-broll-product-demo"`, use this default skeleton (per the chosen style preset's "default scene recipe" in `assets/style-presets/<name>/design.md`):
+
+| Segment type | Tool | Block | Duration |
+|---|---|---|---|
+| `title-card` | hyperframes | (CSS-only) | 3-4s |
+| `device-mockup` | hyperframes | `vfx-iphone-device` or custom MacBook CSS | 15-25s |
+| `meta-output` | hyperframes | multi-shot brand preview (PR #8) | 5-7s |
+| `title-card` (closing) | hyperframes | (CSS-only) | 3-4s |
+| `wordmark` | hyperframes | `logo-outro` or CSS-only | 3-5s |
+
+See `templates/openai-product-demo.json` (PR #5) for the canonical recipe spec.
+
+---
 
 ## What each tool is good at
 

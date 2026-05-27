@@ -8,6 +8,142 @@ It must be complete, unambiguous, and reviewable by a non-technical user.
 Working directory: `storyboard.md` (human-readable) and optionally `storyboard.json`
 (machine-readable for `compose_and_render.py`). Keep them in sync.
 
+## Top-level storyboard.json schema (post PR #1 + #4 + #6 + #12)
+
+```jsonc
+{
+  // === From Phase 1 preflight (PR #1 + #12) ===
+  "mode": "pure-broll-product-demo",     // | "aroll-broll-hybrid" | "aroll-only"
+  "style_preset": "openai-clean",        // one of 5 built-ins, or "custom"
+  "style_overrides": {                   // optional; per-task tweaks
+    "accent": "#FF6B35"
+  },
+  "channel": "x",                        // x | linkedin | tiktok | youtube | website | multi
+  "aspect_ratio": "1:1",                 // 1:1 | 9:16 | 16:9
+  "width": 1440,                          // derived from aspect_ratio
+  "height": 1440,
+
+  // === Content shape ===
+  "content_profile": "single-message",   // single-message | few-features | many-features
+  "total_duration": 32.0,
+  "agent_list": ["claude", "codex"],     // optional; for agent-row openings (PR #9)
+
+  // === Narrative (CRITICAL — see references/narrative-arc.md) ===
+  "narrative": {
+    "protagonist": "Founder who lives meeting-to-meeting",
+    "problem": "Post-meeting commitments die between calendar and inbox",
+    "moment_of_magic": "Watching Syncore lift a 4-day-old commitment from a recording and pre-draft the message",
+    "memorable_line": "Made for the work between meetings.",
+    "cta": "syncore.app"
+  },
+  "arc_map": {
+    "hook":    ["frame-summon"],
+    "tension": ["frame-alongside"],
+    "reveal":  ["frame-detect"],
+    "magic":   ["frame-file", "frame-handoff", "frame-kept"],
+    "breather": ["frame-later"],   // optional 6th beat
+    "promise": ["frame-end"]
+  },
+
+  // === Cast (Pattern 3) — named protagonist + supporting cast ===
+  "cast": {
+    "protagonist": {
+      "name": "Erica",
+      "role": "Engineering lead",
+      "affiliation": "her own startup",
+      "motivation": "Doesn't want to forget what she said in meetings"
+    },
+    "supporting": [
+      { "name": "David Chen", "role": "PM", "affiliation": "Vertex Labs" },
+      { "name": "Sam",        "role": "engineer", "affiliation": "Vertex Labs" },
+      { "name": "Priya",      "role": "designer", "affiliation": "Vertex Labs" }
+    ]
+  },
+
+  // === Canon (Pattern 1) — 3-5 specific entities preserved across every frame ===
+  "canon": {
+    "meeting":         "Vertex Labs sync",
+    "other_party":     "David Chen (Vertex Labs · david@vertexlabs.co)",
+    "central_quote":   "I'll send you the rollout setup guide by Thursday.",
+    "attached_doc":    "Notion — Vertex onboarding · rollout SOP",
+    "background_promises": [
+      "Maya Singh / Acme — pricing breakdown",
+      "Tom Riley / Northwind — confirm meeting slot",
+      "Jen Park / Helix — review proposal"
+    ]
+  },
+
+  // === Echo (Pattern 2) — artifact that recurs across 2+ frames as visual rhyme ===
+  "echo": [
+    {
+      "artifact": "central_quote",
+      "appears_in": ["frame-detect", "frame-handoff", "frame-kept"],
+      "treatment": "italic serif quote, same typography across all 3 occurrences"
+    }
+  ],
+
+  // === Click chain (Pattern 7) — UI products only ===
+  "click_chain": [
+    { "at": 2.55, "button": "Start meeting notes", "in_frame": "frame-summon",   "triggers": "frame-alongside" },
+    { "at": 17.35, "button": "Draft",              "in_frame": "frame-file",     "triggers": "frame-handoff" },
+    { "at": 30.30, "button": "Send (prompt)",      "in_frame": "frame-handoff",  "triggers": "frame-kept" },
+    { "at": 38.55, "button": "Send (email)",       "in_frame": "frame-kept",     "triggers": "frame-end" }
+  ],
+
+  // === Segments (per-segment fields below) ===
+  "segments": [ ... ]
+}
+```
+
+## Per-segment fields
+
+```jsonc
+{
+  "id": "frame-detect",
+  "frame_name": "DETECT",                // Pattern 4 — short UPPERCASE keyword
+  "start": 7.45,
+  "duration": 6.0,
+  "type": "device-mockup",               // title-card | device-mockup | wordmark | data-viz | meta-output | breather | a-roll | b-roll-video
+  "tool": "hyperframes",
+
+  // === Pattern 5 — Narration cue (REQUIRED — either this OR silent:true) ===
+  "narration": {
+    "cue_id": "03 · DETECT",
+    "line": "Spots commitments as you make them. No tagging required.",
+    "silent": false
+  },
+  // OR, for silent frames (breather, end card, etc):
+  // "narration": { "silent": true, "reason": "the breather is the point" }
+
+  // === Pattern 7 — Click chain (UI products only) ===
+  "click_triggers_next": false,          // if true, declare click time + next frame in top-level click_chain
+
+  // === Canon reference (Pattern 1) — which canon entities appear in this frame ===
+  "canon_used": ["meeting", "other_party", "central_quote"],
+
+  // === Existing fields ===
+  "block": "vfx-iphone-device",
+  "block_params": { "screen_content_html": "compositions/screen-script.html" },
+  "camera_path": [
+    {"at": 0.0, "scale": 0.86},
+    {"at": 5.0, "scale": 1.04}
+  ],
+  "transition_in": "cross-fade",
+  "beats": [
+    {"at": 0.5, "name": "meeting_scales_up"},
+    {"at": 2.0, "name": "quote_highlighted"},
+    {"at": 4.0, "name": "promise_chip_materializes"}
+  ],
+  "snap_to_beat": true,
+
+  "intent": "Erica's promise to David gets highlighted in transcript; PROMISE chip materializes",
+  "script": "...",                       // A-roll only
+  "caption": "...",
+  "caption_start": 0.3,
+  "caption_duration": 4.5
+}
+```
+
 ---
 
 ## storyboard.md format

@@ -4,48 +4,30 @@ Battle-tested patterns for the production phase. Use these when the storyboard c
 
 ---
 
-## 1. Animated text overlays without `drawtext`
+## 1. Animated text overlays — use HyperFrames caption-* components (updated PR #3)
 
-Many ffmpeg builds (esp. Homebrew on macOS) ship without libfreetype, so `drawtext` is unavailable. The reliable cross-platform fallback is **PIL → PNG → ffmpeg overlay**.
+> **The old PIL+ffmpeg pattern is deprecated.** It produced hard cut-in/cut-out only, which looks amateur in 2026 product video. See `references/caption-components.md` for the full replacement.
 
-**Pattern:** render N cumulative RGBA PNG frames at the video resolution, overlay them with time-gated `enable=` expressions.
-
-```python
-from PIL import Image, ImageDraw, ImageFont
-
-annotations = ["Low polygon count", "Stretched textures", "Jagged silhouette"]
-fnt = ImageFont.truetype("/System/Library/Fonts/HelveticaNeue.ttc", 40)
-
-# Three cumulative overlays — N=1 shows label 1, N=2 shows 1+2, N=3 shows all
-for n in (1, 2, 3):
-    img = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-    d = ImageDraw.Draw(img, "RGBA")
-    for i in range(n):
-        x, y = 32, 110 + i * 78
-        # Red dot
-        d.ellipse([(x, y + 20), (x + 16, y + 36)], fill=(255, 90, 90, 255))
-        # Text with stroke for legibility against any background
-        d.text((x + 30, y), annotations[i], font=fnt,
-               fill=(255, 235, 235, 255),
-               stroke_width=3, stroke_fill=(0, 0, 0, 230))
-    img.save(f"anno_{n}.png")
-```
-
-Then overlay via ffmpeg with stagger timing:
+For any timeline-synced text overlay, install one of the registry caption components and render via HyperFrames — `caption-kinetic-slam` for hooks, `caption-weight-shift` for premium reveals, `caption-gradient-fill` for CTAs, `caption-pill-karaoke` for VO sync.
 
 ```bash
-ffmpeg -y -i base.mp4 -i anno_1.png -i anno_2.png -i anno_3.png \
-  -filter_complex "
-    [0:v][1:v]overlay=0:0:enable='between(t,0.4,1.4)'[v1];
-    [v1][2:v]overlay=0:0:enable='between(t,1.4,2.2)'[v2];
-    [v2][3:v]overlay=0:0:enable='between(t,2.2,3.5)'[v]
-  " -map "[v]" -map 0:a ...
+# In the project root after Phase 4 npm install:
+npx hyperframes add caption-weight-shift --no-clipboard
 ```
 
-### Annotation styling
+`scripts/compose_and_render.py` calls `npx hyperframes add` automatically for any caption components declared in the storyboard's segments (via `block` or `template` fields). You do not need to install manually.
 
+See `references/caption-components.md` for the curated 4-component starter set + selection guide per style preset.
+
+### When raster text IS still appropriate
+
+The PIL pattern remains useful in one narrow case: annotating an existing video clip post-render with a static label (think: "DEBUG OUTPUT" stamp on a screen recording). For that, the old pattern works fine but isn't the skill's default any more.
+
+### Annotation styling guidance (still valid)
+
+These rules apply regardless of caption tech:
 - **Skip border boxes.** They're hard to size correctly (text overflows) and look heavy on cinematic content.
-- Default style: a colored bullet/dot + text with a 3px black stroke outline. Reads cleanly over any video.
+- Default style: a colored bullet/dot + text with a clear contrast layer (stroke or pill bg). Reads cleanly over any background.
 - Bullet color signals tone: red for problems / criticisms, green for wins, blue/cyan for neutral facts.
 
 ---
@@ -111,22 +93,33 @@ Sync the wordmark to a meaningful audio cue: a key word in the avatar's line, a 
 
 ---
 
-## 4. Frame-rate alignment
+## 4. Frame-rate alignment — 60fps end-to-end (updated PR #2)
 
-Seedance A-roll typically returns video at **24 fps**; the HyperFrames render is **30 fps**.
-The ffmpeg `concat` filter handles mismatched framerates (re-encodes to a common rate),
-but `concat -c copy` does not. **Normalize every clip to a common 25 fps** before concat:
+The skill now renders at **60fps `--quality high`** by default — see [`motion-house-style.md`](./motion-house-style.md) §1. `scripts/compose_and_render.py` passes this automatically.
+
+A-roll Seedance clips usually return at 24fps. **Frame-interpolate UP to 60fps** before concat — never sample down to 25fps (the old approach silently capped every video's smoothness):
 
 ```bash
+# Lift Seedance A-roll from 24fps → 60fps
 ffmpeg -y -i seedance_aroll.mp4 \
-  -vf "scale=1080:1920,fps=25" \
+  -vf "scale=1080:1920,fps=60" \
   -c:v libx264 -pix_fmt yuv420p -preset medium -crf 18 \
   -c:a aac -b:a 192k -ar 48000 \
-  aroll_25fps.mp4
+  aroll_60fps.mp4
 ```
+
+For the concat filter, render every clip at 60fps before stitching. ffmpeg's `concat` filter
+handles mismatched framerates with a re-encode, but the result inherits the lowest input
+fps — so any 24fps source dragged through will create stutter regardless of the final
+container fps. Always pre-process.
 
 The Seedance A-roll already carries its own audio (generated voice, or the reference
 video's voice in r2v mode) — keep it; do not strip or replace it.
+
+> **Why this changed**: the old §4 normalized everything to 25fps for concat-compatibility
+> safety, which silently capped every video's perceived smoothness at 25fps. The hyperframes
+> CLI now supports `--fps 60 --quality high` natively, and 60fps rendering is 2× slower but
+> visibly more polished. The render is the cheap step relative to total iteration time.
 
 ---
 

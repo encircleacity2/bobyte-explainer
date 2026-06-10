@@ -54,7 +54,14 @@ check("ffprobe", ok_ffprobe, "comes with ffmpeg")
 print("\n[2/3] CLIs")
 
 ok_claude = shutil.which("claude") is not None
-check("Claude Code CLI", ok_claude, "install from https://docs.claude.com/en/docs/claude-code/overview")
+ok_codex = shutil.which("codex") is not None
+ok_agent = ok_claude or ok_codex
+check("Codex or Claude Code CLI", ok_agent,
+      "install Codex or Claude Code, depending on the agent you use")
+if ok_codex:
+    check("  Codex CLI detected", True)
+if ok_claude:
+    check("  Claude Code CLI detected", True)
 
 ok_lark = shutil.which("lark-cli") is not None
 check("lark-cli (only needed for Lark/Feishu doc input + upload)", ok_lark,
@@ -99,10 +106,37 @@ if ok_cfg:
     else:
         check("  AI music disabled — Volcengine keys not required", True)
 
+    profiles = cfg.get("api_profiles", {})
+    proxy_url = cfg.get("api_proxy_url", "")
+    default_profile = cfg.get("default_api_profile", "")
+    if proxy_url:
+        check("  API proxy configured", True)
+    elif profiles:
+        check("  API profiles configured", True)
+        if default_profile:
+            present = default_profile in profiles
+            ok_fields = ok_fields and present
+            check(f"  default API profile exists ({default_profile})", present,
+                  "set default_api_profile to one of config.api_profiles")
+    else:
+        check("  API profile/proxy optional", True)
+
+    if cfg.get("tts_enabled"):
+        tts_profile = cfg.get("tts_profile")
+        tts_speaker = cfg.get("tts_speaker")
+        ok_fields = ok_fields and bool(tts_profile) and bool(tts_speaker)
+        check("  config.tts_profile (TTS enabled)", bool(tts_profile),
+              "set a TTS profile such as byteplus-tts, elevenlabs, or proxy")
+        check("  config.tts_speaker (TTS enabled)", bool(tts_speaker),
+              "set a speaker/voice id")
+    else:
+        check("  standalone TTS disabled — TTS keys not required", True)
+
 print()
 print("=" * 60)
 
 if all([ok_node and node_major >= 22, ok_python, ok_ff, ok_ffprobe,
+        ok_agent,
         ok_cfg, ok_fields]):
     print("All systems ready. Proceed with Phase 1 (intake).")
 else:

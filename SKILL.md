@@ -1,6 +1,6 @@
 ---
 name: explainer-video
-description: Turns product information — Lark/Feishu docs, GitHub repos, screenshots, PDFs, free-form text — into a polished 9:16 vertical explainer video that combines a Seedance 2.0 AI digital-human A-roll with animated HyperFrames B-roll and AI background music. Use whenever the user wants to make a short-form vertical explainer / announcement / launch video about a product, feature, repo, or skill. Trigger phrases: "make an explainer video about X", "produce a Shorts/TikTok video for this", "turn this repo into a video", "create a product launch reel", or any request to generate a vertical product video.
+description: Turns product information — Lark/Feishu docs, GitHub repos, screenshots, PDFs, free-form text — into a polished explainer video for Codex or Claude Code. It can combine pure HyperFrames B-roll, optional standalone TTS voice-over, optional Seedance 2.0 AI digital-human A-roll, AI background music, and provider-profile/API-proxy routing. Use whenever the user wants to make a customer overview, launch video, short-form vertical explainer, demo reel, or repo/product announcement. Trigger phrases: "make an explainer video about X", "produce a Shorts/TikTok video for this", "turn this repo into a video", "create a product launch reel", "make a customer overview video", or any request to generate a product video.
 ---
 
 # explainer-video — Product explainer video pipeline
@@ -8,7 +8,9 @@ description: Turns product information — Lark/Feishu docs, GitHub repos, scree
 Turns product inputs into a polished explainer video at the user-chosen aspect ratio (1:1 / 9:16 / 16:9):
 - **A-roll** — an AI digital-human talking-head, generated entirely with the **Seedance 2.0** API (BytePlus ModelArk). Skipped in `pure-broll-product-demo` mode.
 - **B-roll** — animated typographic / data / device-UI scenes rendered locally with **HyperFrames**.
+- **TTS voice-over** — optional standalone narration from BytePlus, ElevenLabs, or a compatible proxy.
 - **Music** — AI background music from the **Volcengine** music API.
+- **API profiles** — optional provider/key/base-url routing through `~/.explainer-video/config.json`, with proxy support.
 
 The pipeline is gated: the user must approve the storyboard before any paid generation runs.
 
@@ -35,11 +37,23 @@ cat ~/.explainer-video/config.json 2>/dev/null
 ```json
 {
   "modelark_api_key": "<ModelArk API key>",
+  "api_profiles": {
+    "byteplus": {
+      "provider": "byteplus",
+      "base_url": "https://ark.ap-southeast.bytepluses.com/api/v3",
+      "api_key_env": "BYTEPLUS_API_KEY"
+    }
+  },
+  "default_api_profile": "byteplus",
+  "api_proxy_url": "",
   "iam_ak": "<BytePlus IAM access key>",
   "iam_sk": "<BytePlus IAM secret key>",
   "portrait_image": "/abs/path/to/personal-photo.jpg",
   "reference_video": "/abs/path/to/portrait-video-with-audio.mov",
   "output_folder": "/abs/path/to/save/folder",
+  "tts_enabled": false,
+  "tts_profile": "byteplus-tts",
+  "tts_speaker": "en_female_stokie_uranus_bigtts",
   "music_enabled": true,
   "volc_music_ak": "<Volcengine access key — only present if music_enabled is true>",
   "volc_music_sk": "<Volcengine secret key — only present if music_enabled is true>",
@@ -65,7 +79,7 @@ When `config.json` is missing, walk the user through this once. Keep it friendly
 >   · **pure-broll-product-demo** (default for repo/product demos) — no on-camera presenter; polished motion + UI
 >   · **aroll-broll-hybrid** — adds an AI digital-human talking-head (Seedance 2.0)
 >   · **aroll-only** — minimal, just the avatar
-> With optional background music. Let's get you set up — it takes a minute."
+> With optional standalone TTS narration and optional background music. Let's get you set up — it takes a minute."
 
 **2. Choose how to provide credentials.** Ask:
 
@@ -80,10 +94,16 @@ When `config.json` is missing, walk the user through this once. Keep it friendly
 - **If (a):** read the file, parse the `key: value` lines, and validate that every required
   field is present and non-placeholder. Write `config.json` from it. If anything is missing
   or still a placeholder, fall back to asking **only** for the missing items step-by-step.
-- **If (b):** continue with steps 3–7 below.
+- **If (b):** continue with steps 3–8 below.
 
 **3. Collect the ModelArk API key.**
 Ask: *"Paste your BytePlus ModelArk API key (used to generate Seedance 2.0 video and Seedream images)."*
+
+Also ask whether the user wants to route generation APIs through provider profiles or a proxy:
+*"Do you want direct provider keys, or an API proxy/profile config for provider switching? (direct / proxy)"*
+
+- **direct** → write a default `api_profiles.byteplus` entry that uses the ModelArk key.
+- **proxy** → ask for `api_proxy_url` and a default profile name. Never store proxy secrets in the repo.
 
 **4. Collect the BytePlus IAM AK / SK.**
 Ask: *"Paste your BytePlus IAM access key (AK) and secret key (SK). These are used to operate the ModelArk asset library and TOS object storage."*
@@ -98,7 +118,12 @@ Record the absolute paths.
 **6. Ask for the preferred output folder.**
 Ask: *"Where should finished videos be saved? (press Enter for the default `~/Downloads`)"*
 
-**7. Ask about automatic AI music.**
+**7. Ask about standalone TTS.**
+Ask: *"Do you want standalone TTS voice-over support? It is useful for B-roll-only videos, benchmark sections, and smoother narration timing. (yes / no)"*
+- **If yes** → set `tts_enabled: true`, ask for a default TTS profile/provider and speaker.
+- **If no** → set `tts_enabled: false`. Seedance A-roll can still carry generated or reference audio.
+
+**8. Ask about automatic AI music.**
 Ask: *"Do you want automatic AI background music for your videos? (yes / no)"*
 - **If yes** → set `music_enabled: true` and ask:
   *"Paste your Volcengine access key (AK) and secret key (SK) — used by the Volcengine
@@ -106,7 +131,7 @@ Ask: *"Do you want automatic AI background music for your videos? (yes / no)"*
 - **If no** → set `music_enabled: false` and skip the Volcengine keys. The per-task
   workflow will produce videos without a music bed.
 
-**8. Write the config** to `~/.explainer-video/config.json` (create the dir, `chmod 600` the file). Confirm: *"Setup complete — you're ready to make videos."*
+**9. Write the config** to `~/.explainer-video/config.json` (create the dir, `chmod 600` the file). Confirm: *"Setup complete — you're ready to make videos."*
 
 > Per-task steps (portrait restyle, storyboard review) are NOT part of onboarding — they run on every task. See § Per-task workflow.
 
@@ -121,8 +146,8 @@ Run these phases in order for every video. Never skip the Phase 3 approval gate.
 1. List the user's inputs and categorize: `text_docs`, `github_url`, `lark_doc`, `screenshots`, `pdfs`, `chat_description`.
 2. Extract content:
    - **Lark/Feishu docs** — fetch with `lark-cli docs +fetch --api-version v2 --doc <token> --as user`. (Requires lark-cli installed + authorized.)
-   - **GitHub URL** — `web_fetch` the repo for README, stars, recent commits.
-   - **Screenshots / PDFs** — read with vision / the pdf skill.
+   - **GitHub URL** — fetch the repo README, metadata, and relevant files with the agent's available web/GitHub tools.
+   - **Screenshots / PDFs** — read with the agent's available vision, PDF, or document tools.
    - **Chat description** — treat as the user's stated intent.
 3. Produce `product-brief.md` (what it is, core differentiators, audience, visual assets, stated angle). Show it and confirm.
 
@@ -227,7 +252,7 @@ Before any paid generation, design and present:
    - What drives the narrative forward (click chain or beat triggers)
    - What's locked (target duration, aspect, style preset, planned output path)
 
-1. **Recommended length** — pick from the content profile and state the reasoning:
+1. **Recommended length** — pick from the content profile and state the reasoning. For customer-facing 16:9 overview videos or benchmark/pricing-heavy content, run `scripts/plan_duration.py` or read `references/duration-planning.md` before locking the target:
 
    | Content profile | Recommended length | content_profile key |
    |---|---|---|
@@ -237,10 +262,11 @@ Before any paid generation, design and present:
 
    > **Bias toward compression** (PR #11). Earlier defaults (20-30 / 45-60 / 75-110) consistently produced videos with dead air at the end. A 45s narrative will land more cleanly at 32s — same content, denser pacing. If a target seems too long for the content, shorten before approval.
 
-2. **Storyboard** — a segment-by-segment beat sheet. For each segment specify: time range, type (`A-roll` / `B-roll`), on-screen content, and for A-roll the spoken script.
+2. **Storyboard** — a segment-by-segment beat sheet. For each segment specify: time range, type (`A-roll` / `B-roll` / `VO+B-roll`), on-screen content, voice source, and spoken script when applicable.
 
 3. **A-roll / B-roll routing:**
    - **A-roll (Seedance 2.0)** — talking-head segments. Typically a hook/intro and a closing CTA. Keep each 5–10s.
+   - **TTS voice-over** — use for B-roll-first customer videos, benchmark interpretation, pricing sections, and cases where voice timing must align tightly with demo footage.
    - **B-roll (HyperFrames)** — everything else: typographic scenes, skill/feature demos, data callouts, kinetic-typography hooks, brand reveal. Rendered locally, no per-clip cost.
 
 4. **Music plan** — only if `config.music_enabled` is `true`. From the task context
@@ -251,7 +277,7 @@ Before any paid generation, design and present:
    The user can accept the suggestion or replace it. If `music_enabled` is `false`, state
    that the video will have no music bed and skip this item.
 
-5. **Cost estimate** — Seedance tokens (A-roll), Volcengine music (if enabled), HyperFrames $0. Show it.
+5. **Cost estimate** — Seedance tokens (A-roll), TTS characters/minutes (if enabled), Volcengine music (if enabled), HyperFrames $0. Show it.
 
 6. **Run the unified verifier** (PRs #7 + #11 + Wave 5) BEFORE presenting:
 
@@ -290,21 +316,23 @@ Runs only after Phase 3 approval.
 > **Before writing any GSAP code**: read [`references/motion-house-style.md`](references/motion-house-style.md) — non-negotiable easings, frame rate, duration windows, exit-animation rules. Skipping this consistently produces "feels cheap" motion that requires a second render pass to fix. Render is the expensive step.
 
 1. **Workspace** — `mkdir -p` a project dir; `cp -r <skill>/assets/* .`; `cp -r <skill>/templates/* .` (if using any reusable templates like agent-chip-row.html); `npm install` (downloads HyperFrames).
-2. **A-roll** — generate every talking-head segment with Seedance 2.0 (only if mode is `aroll-broll-hybrid` or `aroll-only`). See § A-roll generation.
-3. **B-roll** — build the HyperFrames composition (`index.html`); render at **60fps `--quality high`** via `scripts/compose_and_render.py` (which now passes these flags by default — PR #2). See `references/production-techniques.md`.
-4. **Music** — only if `config.music_enabled` is `true`: generate BGM with the Volcengine API, using the music prompt approved in Phase 3. See `references/volcengine-music-api.md`. If `music_enabled` is `false`, skip this step.
+2. **API profile resolution** — before paid calls, resolve provider/base URL/key from `config.api_profiles` or `config.api_proxy_url`. See `references/api-proxy.md`.
+3. **A-roll** — generate every talking-head segment with Seedance 2.0 (only if mode is `aroll-broll-hybrid` or `aroll-only`). See § A-roll generation.
+4. **TTS** — generate standalone VO with `scripts/generate_tts.py` for any `VO+B-roll` segment. Cache outputs under `assets/audio/`, normalize loudness, and update storyboard durations from actual audio length. See `references/tts-api.md`.
+5. **B-roll** — build the HyperFrames composition (`index.html`); render at **60fps `--quality high`** via `scripts/compose_and_render.py` (which now passes these flags by default — PR #2). See `references/production-techniques.md`.
+6. **Music** — only if `config.music_enabled` is `true`: generate BGM with the Volcengine API, using the music prompt approved in Phase 3. See `references/volcengine-music-api.md`. If `music_enabled` is `false`, skip this step.
 
-4b. **Beat-align (optional, PR #10)** — if `references/storyboard-format.md` lists segments with `snap_to_beat: true`, run:
+6b. **Beat-align (optional, PR #10)** — if `references/storyboard-format.md` lists segments with `snap_to_beat: true`, run:
    ```bash
    python3 <skill>/scripts/beat_align.py storyboard.json assets/music_bed.m4a
    ```
-   This snaps transition/beat times to the nearest detected music onset (±150ms). Re-renders the composition with the aligned storyboard before step 5. Falls back silently if `librosa` isn't installed.
+   This snaps transition/beat times to the nearest detected music onset (±150ms). Re-renders the composition with the aligned storyboard before assembly. Falls back silently if `librosa` isn't installed.
 
-5. **Assemble** — slice the HyperFrames render, concat with the A-roll segments. If music was generated, mix the music bed (sidechain-duck the music under any A-roll voice). See `references/production-techniques.md`.
+7. **Assemble** — slice the HyperFrames render, concat with the A-roll segments if needed. Mix voice first, then add one continuous sidechain-ducked music bed as the final pass. Avoid splicing already-mixed audio from different videos. See `references/production-techniques.md`.
 
-6. **Meta-output beat (PR #8, optional)** — if the storyboard includes a `meta-output` segment with `strategy: "recursive-video"`, this is the place to do the **two-pass** render: skip the meta beat in pass 1, re-encode with dense keyframes, embed in pass 2. See `references/meta-output-beat.md` for the full pipeline. The default `strategy: "synthetic"` doesn't require two passes.
+8. **Meta-output beat (PR #8, optional)** — if the storyboard includes a `meta-output` segment with `strategy: "recursive-video"`, this is the place to do the **two-pass** render: skip the meta beat in pass 1, re-encode with dense keyframes, embed in pass 2. See `references/meta-output-beat.md` for the full pipeline. The default `strategy: "synthetic"` doesn't require two passes.
 
-7. **Post-render verifier** (Wave 5) — `compose_and_render.py` automatically runs:
+9. **Post-render verifier** (Wave 5) — `compose_and_render.py` automatically runs:
 
    ```bash
    python3 <skill>/scripts/verify.py storyboard.json --mode post \\
@@ -321,7 +349,7 @@ Save the final MP4 to `config.output_folder` (default `~/Downloads`). Report dur
 
 ---
 
-## A-roll generation — Seedance 2.0 only
+## A-roll generation — Seedance 2.0
 
 A-roll is generated entirely with the Seedance 2.0 API. Full API details, endpoints, the asset-library workflow, and Python helpers are in **`references/seedance-api.md`** — read it before generating. Two modes:
 
@@ -339,6 +367,14 @@ Portrait image (appearance) + a reference video (voice character + facial-muscle
 
 When the storyboard's A-roll segments need specific spoken lines, **put the script in the text prompt** even in r2v mode.
 
+## Standalone TTS — voice-over
+
+Use standalone TTS when the desired output is B-roll-led, customer-facing, benchmark-heavy,
+or when exact pacing matters more than seeing a digital human. Generate voice tracks before
+locking final scene durations, then update the storyboard with actual audio durations.
+
+Read `references/tts-api.md` before generating. Use `scripts/generate_tts.py` when possible.
+
 ---
 
 ## References (load on demand)
@@ -348,6 +384,10 @@ When the storyboard's A-roll segments need specific spoken lines, **put the scri
 | `references/seedance-api.md` | Seedance 2.0 video API — endpoints, asset library (SigV4), `asset://`, r2v + image+text modes |
 | `references/seedream-api.md` | Seedream 4.5 image API — the Phase 2 portrait restyle (4-variation generate) |
 | `references/volcengine-music-api.md` | Volcengine BGM API — GenBGM/QuerySong, similarity-retry, mixing |
+| `references/tts-api.md` | Standalone TTS provider profiles, caching, normalization, timing |
+| `references/api-proxy.md` | Provider/profile routing, proxy mode, key hygiene |
+| `references/duration-planning.md` | Content-density based duration planning |
+| `references/taste-guide.md` | OpenAI / Anthropic-inspired launch-video taste principles |
 | `references/storyboard-format.md` | Storyboard JSON/markdown spec |
 | `references/production-techniques.md` | HyperFrames composition, slicing, concat, sidechain ducking, kinetic typography |
 | `references/hook-patterns.md` | Hook templates for short-form video |
@@ -373,7 +413,9 @@ When the storyboard's A-roll segments need specific spoken lines, **put the scri
 |---|---|
 | `preflight.py` | Pre-flight environment checks |
 | `parse_inputs.py` | Categorize user inputs (text/url/pdf/screenshot) |
-| `estimate_cost.py` | Pre-Phase-3 cost estimate (Seedance tokens + Volcengine music) |
+| `plan_duration.py` | Content-density based duration recommendation for 16:9/customer-overview and proof-heavy videos |
+| `generate_tts.py` | Standalone TTS generation for BytePlus, ElevenLabs, or proxy profiles |
+| `estimate_cost.py` | Pre-Phase-3 cost estimate (Seedance tokens + TTS characters/minutes + Volcengine music) |
 | `analyze_reference_video.py` | Extract style data from a reference clip |
 | `compose_and_render.py` | Phase 4 orchestrator — assembles index.html, renders at **60fps high quality** (PR #2) |
 | `audit_storyboard.py` | **PR #7 + #11** — dead-air detector + duration target + pacing audit. Run in Phase 3 BEFORE the approval gate. |

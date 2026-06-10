@@ -70,7 +70,7 @@ Use `scripts/analyze_reference_video.py`. It runs all the above and produces:
 
 ## How to use the analysis in storyboard design
 
-After analyzing the reference video, use Claude vision to look at the extracted frames. Note:
+After analyzing the reference video, use the active agent's vision tools to inspect the extracted frames. Note:
 
 1. **What's on screen at each frame** — is it a face, UI, abstract motion, text?
 2. **Visual mood** — bright/dark, warm/cool, busy/minimal

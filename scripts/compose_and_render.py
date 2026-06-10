@@ -2,8 +2,8 @@
 """
 Orchestrator for Phase 4 — production execution.
 
-This is mostly a guide / scaffold. The Seedance 2.0 API calls happen through Claude
-Code following SKILL.md Phase 4 instructions, not from this script.
+This is mostly a guide / scaffold. The Seedance 2.0 API calls happen through the
+active agent following SKILL.md Phase 4 instructions, not from this script.
 
 What this script DOES do:
   - Validates that all assets/*.mp4 files exist
@@ -12,7 +12,7 @@ What this script DOES do:
   - Produces dist/main.mp4
 
 The Seedance A-roll generation (and any cinematic Seedance B-roll) is handled by
-Claude Code per SKILL.md § A-roll generation, NOT this script.
+the active agent per SKILL.md § A-roll generation, NOT this script.
 
 Usage:
     # After all Seedance-generated A-roll MP4s are in place:
@@ -90,12 +90,21 @@ def _extract_yaml_field(text, key, default=""):
 
 
 def validate_assets(storyboard, project_root):
-    """Check all required MP4 files exist and are non-empty."""
+    """Check all required media files exist and are non-empty."""
     missing = []
     empty = []
     assets_dir = project_root / "assets"
 
     for seg in storyboard["segments"]:
+        voice = seg.get("voice", {})
+        if voice.get("mode") == "tts":
+            audio = voice.get("src") or f"assets/audio/{seg['id']}.m4a"
+            audio_path = project_root / audio
+            if not audio_path.exists():
+                missing.append(str(audio_path))
+            elif audio_path.stat().st_size < 1024:
+                empty.append(str(audio_path))
+
         if seg.get("tool") in ("hyperframes",):
             continue  # programmatic, no MP4 needed
         sid = seg["id"]
@@ -137,7 +146,7 @@ def generate_composition(storyboard, project_root, template_path, skill_root=Non
     Generate index.html from storyboard.json + template.
 
     The template has placeholder markers we replace with real segments.
-    For complex animations the user / Claude Code may need to hand-edit afterwards.
+    For complex animations the user / agent may need to hand-edit afterwards.
     """
     template = template_path.read_text()
     total_duration = storyboard.get("total_duration", 15.0)
@@ -156,6 +165,7 @@ def generate_composition(storyboard, project_root, template_path, skill_root=Non
         duration = seg["duration"]
         tool = seg.get("tool", "")
         seg_type = seg.get("type", "")
+        voice = seg.get("voice", {})
 
         if seg_type == "a-roll":
             # Insert <video> + <audio> for a Seedance A-roll segment
@@ -204,7 +214,7 @@ def generate_composition(storyboard, project_root, template_path, skill_root=Non
 
         elif tool == "hyperframes":
             # This is where we'd render programmatic scene from spec.
-            # For complex specs, leave a stub the user/Claude Code edits manually.
+            # For complex specs, leave a stub the user/agent edits manually.
             elements.append(f"""
       <!-- HYPERFRAMES_SCENE id={sid} duration={duration} -->
       <div id="{sid}" class="clip hyperframes-scene"
@@ -213,6 +223,12 @@ def generate_composition(storyboard, project_root, template_path, skill_root=Non
         <!-- TODO: implement scene per storyboard spec -->
         Scene {sid}: {seg.get('intent', '')[:50]}
       </div>""")
+
+            if voice.get("mode") == "tts":
+                audio = voice.get("src") or f"assets/audio/{sid}.m4a"
+                elements.append(f"""
+      <audio id="{sid}-vo" class="clip" data-start="{start}" data-duration="{duration}"
+             data-track-index="3" src="{audio}"></audio>""")
 
     # Inject into template — fill all placeholders (PR #1 + #12 — templated dims + style)
     template = template.replace("<!-- ELEMENTS_PLACEHOLDER -->", "\n".join(elements))
@@ -311,7 +327,7 @@ def main():
 
     storyboard = json.loads(Path(args.storyboard).read_text())
     project_root = Path(args.project_root).resolve()
-    skill_root = Path(__file__).parent.parent.resolve()  # ~/.claude/skills/explainer-video
+    skill_root = Path(__file__).parent.parent.resolve()
 
     template_path = (Path(args.template) if args.template
                      else project_root / "assets" / "hyperframes-template.html")

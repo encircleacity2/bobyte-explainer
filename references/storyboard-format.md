@@ -137,7 +137,13 @@ Working directory: `storyboard.md` (human-readable) and optionally `storyboard.j
   "snap_to_beat": true,
 
   "intent": "Erica's promise to David gets highlighted in transcript; PROMISE chip materializes",
-  "script": "...",                       // A-roll only
+  "script": "...",                       // A-roll or standalone TTS
+  "voice": {                             // Optional for VO+B-roll segments
+    "mode": "tts",
+    "provider": "byteplus-tts",
+    "speaker": "en_female_stokie_uranus_bigtts",
+    "src": "assets/audio/seg03.m4a"
+  },
   "caption": "...",
   "caption_start": 0.3,
   "caption_duration": 4.5
@@ -156,10 +162,11 @@ Working directory: `storyboard.md` (human-readable) and optionally `storyboard.j
 
 ## Timeline
 
-| # | Time | Type | Tool | Content | Spoken / VO |
-|---|------|------|------|---------|-------------|
+| # | Time | Type | Tool | Voice | Content | Spoken / VO |
+|---|------|------|------|-------|---------|-------------|
 | 1 | 0–5s   | B-roll | HyperFrames | Kinetic-typography hook | — |
-| 2 | 5–12s  | A-roll | Seedance 2.0 | Intro to camera | "Every SA juggles Lark, meetings, dashboards…" |
+| 2 | 5–12s  | A-roll | Seedance 2.0 | native | Intro to camera | "Every SA juggles Lark, meetings, dashboards…" |
+| 3 | 12–24s | VO+B-roll | HyperFrames | TTS | Demo proof | "The model keeps video, audio, and text in one context." |
 | 3 | 12–16s | B-roll | HyperFrames | Install scene | — |
 | 4 | 16–86s | B-roll | HyperFrames | 7 skill demos, 10s each | — |
 | 5 | 86–91s | A-roll | Seedance 2.0 | Closing CTA to camera | "Seven skills, one install. Get it on GitHub." |
@@ -189,6 +196,7 @@ Working directory: `storyboard.md` (human-readable) and optionally `storyboard.j
 | Item | Quantity | Cost |
 |------|----------|------|
 | Seedance A-roll | 2 clips (~12s) | <tokens> |
+| Standalone TTS | N characters / M minutes | <provider cost> |
 | HyperFrames B-roll | N segments | $0 |
 | Volcengine music | 1 track | <small> |
 | **Total** |  | **<tokens> + small** |
@@ -204,11 +212,12 @@ Working directory: `storyboard.md` (human-readable) and optionally `storyboard.j
 
 | Segment type | Tool | Notes |
 |---|---|---|
-| A-roll | `seedance-2.0` | Talking-head. Always carries a spoken `script`. Keep each clip 5–10s. Typically only 2 per video (hook + CTA). |
+| A-roll | `seedance-2.0` | Talking-head. Carries a spoken `script` or native reference audio. Keep each clip 5–10s. |
+| VO+B-roll | `hyperframes` + TTS | B-roll scene with standalone narration. Useful for customer overviews, demos, benchmarks, and pricing. |
 | B-roll | `hyperframes` | Typographic / data / demo scenes. Free, local render. The default for B-roll. |
 | B-roll | `seedance-2.0` | Only for non-person cinematic / atmospheric shots. |
 
-There is **one** A-roll tool: Seedance 2.0. Do not mix A-roll tools.
+There is **one** talking-head A-roll tool: Seedance 2.0. Standalone TTS is voice-over, not A-roll.
 
 ---
 
@@ -217,8 +226,10 @@ There is **one** A-roll tool: Seedance 2.0. Do not mix A-roll tools.
 Before presenting to the user, verify:
 
 - [ ] Segment durations sum to the stated total; no timeline gaps.
-- [ ] A-roll segments are 5–10s each; the spoken script fits the duration (~2 words/sec).
+- [ ] A-roll segments are 5–10s each; the spoken script fits the duration.
+- [ ] TTS-backed scripts fit the target pace for the segment type.
 - [ ] Every A-roll segment has an explicit `script`.
+- [ ] Every VO+B-roll segment has `voice.mode: "tts"` and a script.
 - [ ] Every B-roll segment has an explicit `tool` and a one-line "why this tool".
 - [ ] Cost estimate is shown.
 - [ ] The CTA is the last spoken beat (not buried mid-video).

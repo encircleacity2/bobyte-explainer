@@ -1,6 +1,6 @@
 # explainer-video
 
-A [Claude Code](https://claude.ai/code) skill that turns any product input — a doc, a webpage, a GitHub repo, or just an idea — into a launch-quality explainer video. One prompt in, polished MP4 out.
+An agent skill for **Codex** and **Claude Code** that turns any product input — a doc, a webpage, a GitHub repo, or just an idea — into a launch-quality explainer video. One prompt in, polished MP4 out.
 
 ---
 
@@ -14,7 +14,7 @@ https://github.com/encircleacity2/bobyte-explainer/blob/main/assets/demos/demo.m
 
 ### How to use
 
-In your Claude Code session, paste one of:
+In your Codex or Claude Code session, paste one of:
 
 | You have | What you say |
 |---|---|
@@ -66,6 +66,12 @@ Every video renders at 60fps `--quality high` — visibly smoother than the 30fp
 ### 🎵 Optional AI background music
 If enabled at onboarding, the skill generates a custom instrumental via Volcengine's music API per video (matching the storyboard's mood), then sidechain-ducks against any voice. Cost: ~$0.20 per track. Disable entirely if you prefer to add music yourself.
 
+### 🗣️ Standalone TTS voice-over
+For customer overviews, benchmark walkthroughs, and B-roll-first product videos, generate narration independently from Seedance A-roll. This makes timing easier to control, lets you regenerate voice without re-spending video credits, and keeps the final mix clean by rendering voice tracks before adding a continuous music bed.
+
+### 🔐 API profiles and proxy routing
+Provider keys and base URLs can be routed through local `api_profiles` or an internal proxy. This lets teams switch between BytePlus, Volcengine, ElevenLabs, or a gateway without hardcoding secrets in project files.
+
 ### 🤖 A-roll digital human (optional, hybrid mode)
 For personal-brand videos where you want to appear on camera: hybrid mode generates a Seedance 2.0 AI talking-head from your portrait photo + reference voice clip, then composes it with B-roll. Skip this mode for product launches — it's not needed and adds cost.
 
@@ -75,12 +81,21 @@ For personal-brand videos where you want to appear on camera: hybrid mode genera
 
 ### Install once
 
+Codex:
+
+```bash
+git clone https://github.com/encircleacity2/bobyte-explainer.git \
+  ~/.codex/skills/explainer-video
+```
+
+Claude Code:
+
 ```bash
 git clone https://github.com/encircleacity2/bobyte-explainer.git \
   ~/.claude/skills/explainer-video
 ```
 
-Restart your Claude Code session — the skill is auto-discovered.
+Restart your agent session — the skill is auto-discovered from `SKILL.md`.
 
 ### First run: ~3-minute onboarding
 
@@ -95,8 +110,10 @@ It collects:
 2. **AI background music — yes / no** — if yes, Volcengine music AK / SK
 3. **BytePlus ModelArk + IAM keys** — *only if you plan to use hybrid mode* (avatar A-roll)
 4. **Personal portrait photo + reference video** — *only if you plan to use hybrid mode*
+5. **Standalone TTS provider** — optional; useful for B-roll-only narration
+6. **API proxy / provider profiles** — optional; useful for team key management
 
-Pure-broll users only need steps 1–2 to start producing videos.
+Pure-broll users only need steps 1–2 to start producing videos unless they want standalone TTS.
 
 ### Per-task workflow (every video)
 
@@ -152,7 +169,7 @@ Saves the MP4 to your configured output folder. Reports duration, size, path. Op
 ### Architecture
 
 ```
-~/.claude/skills/explainer-video/
+~/.codex/skills/explainer-video/ or ~/.claude/skills/explainer-video/
 ├── SKILL.md                # 5-phase orchestration spec
 ├── references/             # 15 reference docs (load on demand)
 │   ├── narrative-arc.md    # 8 storyline patterns + 5-beat arc (READ FIRST)
@@ -167,6 +184,10 @@ Saves the MP4 to your configured output folder. Reports duration, size, path. Op
 │   ├── agent-list.md             # known AI coding agent brand info
 │   ├── seedance-api.md           # A-roll API (hybrid mode only)
 │   ├── seedream-api.md           # Portrait restyle API
+│   ├── tts-api.md                # Standalone narration providers + timing
+│   ├── api-proxy.md              # Provider profile / gateway routing
+│   ├── duration-planning.md      # Content-density duration planning
+│   ├── taste-guide.md            # OpenAI / Anthropic-inspired restraint
 │   ├── volcengine-music-api.md   # Music generation API
 │   ├── production-techniques.md  # Compose / slice / concat / mix
 │   └── ...
@@ -174,6 +195,8 @@ Saves the MP4 to your configured output folder. Reports duration, size, path. Op
 │   ├── verify.py           # unified validator + auto-fix loop
 │   ├── audit_storyboard.py # storyboard auditor
 │   ├── compose_and_render.py  # Phase 4 orchestrator
+│   ├── generate_tts.py     # standalone TTS generation + normalization
+│   ├── plan_duration.py    # content-density duration recommendation
 │   ├── synthesize_screen_ui.py # LLM-synth in-device screens
 │   ├── fetch_registry.py   # HyperFrames registry cache
 │   └── ...

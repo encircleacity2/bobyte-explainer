@@ -17,6 +17,11 @@ filled-in file when it asks how you want to onboard).
 # BytePlus ModelArk API key — generates Seedance 2.0 video and Seedream images.
 modelark_api_key: <paste ModelArk API key>
 
+# Optional API routing. Use direct unless your team has a local gateway that manages
+# provider switching and key storage.
+api_proxy_url: <optional proxy URL, or leave blank>
+default_api_profile: byteplus
+
 # BytePlus IAM access key / secret key — operate the ModelArk asset library and TOS.
 iam_ak: <paste BytePlus IAM access key>
 iam_sk: <paste BytePlus IAM secret key>
@@ -29,6 +34,21 @@ reference_video: <absolute path to portrait video, e.g. /Users/you/Movies/me-tal
 
 # Where finished videos are saved. Leave as ~/Downloads if unsure.
 output_folder: ~/Downloads
+```
+
+## Standalone TTS (optional)
+
+Standalone TTS is useful when the output is B-roll only, customer-facing, benchmark-heavy,
+or needs narration timing that is independent from Seedance A-roll generation.
+
+```yaml
+tts_enabled: <yes | no>
+tts_profile: <byteplus-tts | elevenlabs | proxy>
+tts_speaker: <speaker or voice id, e.g. en_female_stokie_uranus_bigtts>
+
+# Only required when not using a proxy-managed TTS key.
+byteplus_tts_api_key: <paste BytePlus TTS API key, or leave blank>
+elevenlabs_api_key: <paste ElevenLabs API key, or leave blank>
 ```
 
 ## AI background music (optional)
@@ -53,6 +73,8 @@ volc_music_sk: <paste Volcengine secret key, or leave blank>
 |---|---|
 | `modelark_api_key` | BytePlus ModelArk console → API keys |
 | `iam_ak` / `iam_sk` | BytePlus console → IAM → access keys |
+| `byteplus_tts_api_key` | BytePlus Voice / Seed TTS console |
+| `elevenlabs_api_key` | ElevenLabs dashboard |
 | `volc_music_ak` / `volc_music_sk` | Volcengine console → access keys (music model) |
 | `portrait_image` / `reference_video` | Your own files — record their absolute paths |
 

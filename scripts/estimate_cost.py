@@ -9,6 +9,7 @@ Cost model (see references/cost-rates.md):
     Token rates change; this script reports clip count + total seconds so the
     user can confirm against the live ModelArk console rate.
   - HyperFrames B-roll → $0 (local Chromium render).
+  - Standalone TTS → character count + estimated audio minutes.
   - Volcengine music → 1 track (1-3 generations if similarity retry triggers).
   - Seedream 4.5 portrait restyle → optional, 4 images per round.
 
@@ -53,6 +54,9 @@ def main():
     seedance_clips = 0
     seedance_seconds = 0.0
     hyperframes_segs = 0
+    tts_segments = 0
+    tts_chars = 0
+    tts_seconds = 0.0
     rows = []
 
     for seg in segments:
@@ -60,11 +64,24 @@ def main():
         seg_type = seg.get("type", "")
         tool = normalize_tool(seg.get("tool", ""))
         duration = float(seg.get("duration", 0))
+        voice = seg.get("voice", {})
+        script = seg.get("script") or voice.get("script") or seg.get("spoken") or ""
+        uses_tts = (
+            str(seg_type).lower() in ("vo+b-roll", "vo-broll", "voiceover")
+            or voice.get("mode") == "tts"
+        )
 
         if tool == "seedance" or seg_type == "a-roll":
             seedance_clips += 1
             seedance_seconds += duration
             cost_str = "Seedance tokens"
+        elif uses_tts:
+            tts_segments += 1
+            tts_chars += len(script)
+            tts_seconds += duration
+            if tool == "hyperframes":
+                hyperframes_segs += 1
+            cost_str = "TTS + $0 render"
         elif tool == "hyperframes":
             hyperframes_segs += 1
             cost_str = "$0"
@@ -97,6 +114,8 @@ def main():
         "",
         f"- **Seedance 2.0**: {seedance_clips} clip(s), {seedance_seconds:g}s total "
         f"— BytePlus ModelArk token spend (confirm rate in the ModelArk console)",
+        f"- **Standalone TTS**: {tts_segments} segment(s), {tts_chars} character(s), "
+        f"{tts_seconds:g}s of timeline — provider-specific voice spend",
         f"- **HyperFrames B-roll**: {hyperframes_segs} segment(s) — $0 (local render)",
         f"- **Volcengine music**: {args.music_tracks} generation(s) — small per-track fee",
     ])

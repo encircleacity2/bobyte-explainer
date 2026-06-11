@@ -134,7 +134,17 @@ or shorter (a 5–10s request often returns ~5s). Always:
    ~91–94s is fine).
 3. Update `storyboard.json` with actual durations so cost/length stays accurate.
 
-Seedance A-roll has native audio baked in — there is no separate TTS step to time against.
+Seedance A-roll has native audio baked in. TTS-backed B-roll has separate audio files, so
+the actual TTS duration becomes the source of truth for those scenes.
+
+For standalone TTS:
+
+1. Generate `assets/audio/<segment-id>.m4a` before finalizing the scene duration.
+2. Measure it with `ffprobe`.
+3. Set scene duration to `audio_duration + visual_hold`, where visual hold is usually
+   `0.4-1.5s` depending on chart density.
+4. Do not time-stretch voice for large fixes. Regenerate the TTS with a shorter script or
+   adjust the scene duration.
 
 ---
 
@@ -175,6 +185,8 @@ See `references/volcengine-music-api.md` for the full pattern. Key points:
 - Always sidechain-duck the music against the voice track. Static-volume mixing always compromises one direction.
 - Settings that work across most TikTok/Shorts content: `threshold=0.03 ratio=10 attack=10 release=300`.
 - Verify: voice should land near -18 dB RMS, music-only gaps near -22 to -28 dB.
+- Mix voice first, then music. Do not splice two already-mixed finals together; that creates
+  audible discontinuities at page boundaries.
 
 ---
 

@@ -95,8 +95,14 @@ Constraints:
 9. Output JetBrains Mono for any terminal/code text at 17px line-height 1.5.
 10. Use `tl.set` only at or after each clip's data-start time — never `gsap.set` for
     elements that only exist later in the timeline.
+11. Prevent obvious overflow: every visible label, button, tab, and code line must
+    fit its container at 100% zoom and during 0.86 → 1.10 camera scale. Use
+    clamp(), minmax(), balanced wrapping, max-width, and semantic reflow. Do not
+    mask broken text with overflow:hidden except at the outer screen viewport.
+12. Keep critical UI inside a 96px safe margin equivalent. Primary text should fit
+    in 1-2 lines; dense terminal/code can wrap or scroll within the screen.
 
-The goal is a UI that can scale 0.86 → 1.14 (camera zoom) and remain crisp,
+The goal is a UI that can scale 0.86 → 1.10 (camera zoom) and remain crisp,
 because it's real HTML not a baked screenshot."""
 
 

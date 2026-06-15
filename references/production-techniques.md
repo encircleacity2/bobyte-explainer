@@ -30,6 +30,27 @@ These rules apply regardless of caption tech:
 - Default style: a colored bullet/dot + text with a clear contrast layer (stroke or pill bg). Reads cleanly over any background.
 - Bullet color signals tone: red for problems / criticisms, green for wins, blue/cyan for neutral facts.
 
+### Text/UI overflow prevention
+
+Treat overflow as a production blocker, not a polish note:
+
+- Build the composition at the final render size from the start.
+- Put critical text inside the safe margin declared in `layout_guardrails.safe_margin_px`.
+- For title/caption components, use `clamp()` for font size and max-width, then split the copy if it still needs more than `max_text_lines`.
+- For in-device UI, reflow labels and terminal/code text within the screen instead of clipping. A clipped button label is more noticeable than a slightly smaller font.
+- Check the tightest camera keyframe; text that fits at scale 1.0 can overflow at 1.10.
+- If `validate_overflow.py` reports edge intrusion after render, re-layout and re-render. Do not deliver the MP4 as final.
+
+### Camera choreography during production
+
+Follow the `camera_path` targets from storyboard.json:
+
+- The initial frame should establish context.
+- Push in only when the product action creates new information.
+- Pull back only for context reset, outcome reveal, or the final promise.
+- Keep zoom speed slow enough that the viewer can read the UI while the camera moves.
+- If hand-written GSAP needs a tighter crop than `scale: 1.10`, rebuild the layout for that crop and update the storyboard with the reason.
+
 ---
 
 ## 2. Split-screen B-roll: cinematic + data

@@ -1,6 +1,16 @@
 ---
 name: explainer-video
-description: Turns product information — Lark/Feishu docs, GitHub repos, screenshots, PDFs, free-form text — into a polished explainer video for Codex or Claude Code. It can combine pure HyperFrames B-roll, optional standalone TTS voice-over, optional Seedance 2.0 AI digital-human A-roll, AI background music, and provider-profile/API-proxy routing. Use whenever the user wants to make a customer overview, launch video, short-form vertical explainer, demo reel, or repo/product announcement. Trigger phrases: "make an explainer video about X", "produce a Shorts/TikTok video for this", "turn this repo into a video", "create a product launch reel", "make a customer overview video", or any request to generate a product video.
+description: >-
+  Turns product information — Lark/Feishu docs, GitHub repos, screenshots,
+  PDFs, free-form text — into a polished explainer video for Codex or Claude
+  Code. It can combine pure HyperFrames B-roll, optional standalone TTS
+  voice-over, optional Seedance 2.0 AI digital-human A-roll, AI background
+  music, and provider-profile/API-proxy routing. Use whenever the user wants
+  to make a customer overview, launch video, short-form vertical explainer,
+  demo reel, or repo/product announcement. Trigger phrases: "make an explainer
+  video about X", "produce a Shorts/TikTok video for this", "turn this repo
+  into a video", "create a product launch reel", "make a customer overview
+  video", or any request to generate a product video.
 ---
 
 # explainer-video — Product explainer video pipeline
@@ -150,6 +160,7 @@ Run these phases in order for every video. Never skip the Phase 3 approval gate.
    - **Screenshots / PDFs** — read with the agent's available vision, PDF, or document tools.
    - **Chat description** — treat as the user's stated intent.
 3. Produce `product-brief.md` (what it is, core differentiators, audience, visual assets, stated angle). Show it and confirm.
+4. If the user provides reference videos/links (OpenAI launch clips, Apple keynotes, prior internal examples), read `references/reference-video-analysis.md` and add a **Reference energy** section to `product-brief.md`: pacing, camera energy, typography density, UI/text treatment, and what NOT to copy.
 
 #### Preflight (PRs #1 + #12) — ask BEFORE drafting any storyboard
 
@@ -252,6 +263,24 @@ Before any paid generation, design and present:
    - What drives the narrative forward (click chain or beat triggers)
    - What's locked (target duration, aspect, style preset, planned output path)
 
+**0c. Lock the launch-quality bar BEFORE drafting segments.** For `pure-broll-product-demo`, add top-level `visual_quality_bar` to `storyboard.json`:
+
+```json
+{
+  "animation_target": "launch-grade product motion with layered foreground/background/micro-interactions",
+  "overflow_policy": "resize/reflow/split text before render; never mask broken text",
+  "zoom_policy": "target-led camera moves: push in for product action, pull back only for context/outcome",
+  "reference_energy": "derived from product brief/reference clips"
+}
+```
+
+Then every B-roll-like segment MUST include:
+- `motion`: `quality`, `entrance`, `continuous`, `micro_interactions`, `exit`
+- `layout_guardrails`: `safe_margin_px`, `text_fit`, `max_text_lines`, `overflow_policy`
+- `camera_path[]` keyframes with `target` + `intent` on every keyframe after the first
+
+Read `references/motion-house-style.md` now, not only in Phase 4. `audit_storyboard.py` treats missing motion/layout/zoom logic as severe because those omissions are the usual cause of cheap animation, visible overflow, and random zooms.
+
 1. **Recommended length** — pick from the content profile and state the reasoning. For customer-facing 16:9 overview videos or benchmark/pricing-heavy content, run `scripts/plan_duration.py` or read `references/duration-planning.md` before locking the target:
 
    | Content profile | Recommended length | content_profile key |
@@ -285,7 +314,7 @@ Before any paid generation, design and present:
    python3 <skill>/scripts/verify.py storyboard.json --mode pre --auto-fix
    ```
 
-   This runs ALL pre-render checks: `audit_storyboard` (dead air / duration / density / mode / overflow estimate), `check_overlap` (z-layer collisions), `check_assets` (asset existence + embedded-video keyframes), and hyperframes `lint+validate+inspect`. With `--auto-fix`, it loops until severe issues are mechanically resolved or no further fixes are possible.
+   This runs ALL pre-render checks: `audit_storyboard` (dead air / duration / density / mode / launch-grade motion / layout guardrails / zoom logic / overflow estimate), `check_overlap` (z-layer collisions), `check_assets` (asset existence + embedded-video keyframes), and hyperframes `lint+validate+inspect`. With `--auto-fix`, it loops until severe issues are mechanically resolved or no further fixes are possible.
 
    **Resolve every severe finding** before approval. Warnings (dead air, duplicates) need human judgment — surface them to the user. Auto-fixable issues (camera overflow, track collisions, sparse keyframes) get repaired automatically; verify.py's report will say what it changed.
 
@@ -313,7 +342,7 @@ Before any paid generation, design and present:
 
 Runs only after Phase 3 approval.
 
-> **Before writing any GSAP code**: read [`references/motion-house-style.md`](references/motion-house-style.md) — non-negotiable easings, frame rate, duration windows, exit-animation rules. Skipping this consistently produces "feels cheap" motion that requires a second render pass to fix. Render is the expensive step.
+> **Before writing any GSAP code**: read [`references/motion-house-style.md`](references/motion-house-style.md) — non-negotiable easings, frame rate, duration windows, launch-grade motion stack, layout safety, and camera/zoom rules. Skipping this consistently produces "feels cheap" motion or visible overflow that requires a second render pass to fix. Render is the expensive step.
 
 1. **Workspace** — `mkdir -p` a project dir; `cp -r <skill>/assets/* .`; `cp -r <skill>/templates/* .` (if using any reusable templates like agent-chip-row.html); `npm install` (downloads HyperFrames).
 2. **API profile resolution** — before paid calls, resolve provider/base URL/key from `config.api_profiles` or `config.api_proxy_url`. See `references/api-proxy.md`.
@@ -339,7 +368,7 @@ Runs only after Phase 3 approval.
      --rendered dist/main.mp4 --auto-fix
    ```
 
-   Checks: pixel-based overflow detection (`validate_overflow`), render-spec match (resolution/fps/duration vs declared), audio levels in mode-target range, no clipping. Auto-fix can re-mux the audio gain in place; overflow/spec issues require user attention (re-render with adjusted parameters).
+   Checks: pixel-based overflow detection (`validate_overflow`), render-spec match (resolution/fps/duration vs declared), audio levels in mode-target range, no clipping. Auto-fix can re-mux the audio gain in place; overflow/spec issues require user attention (re-render with adjusted parameters). **If post-render verification reports severe issues, the MP4 is not delivery-ready. Do not proceed to Phase 5 until it passes or the user explicitly accepts a forced draft.**
 
    If `--no-auto-fix` is passed to compose_and_render.py, the verifier reports but doesn't repair. Use `--force` to render even when pre-render verification flags severe issues.
 

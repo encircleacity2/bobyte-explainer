@@ -28,6 +28,14 @@ Working directory: `storyboard.md` (human-readable) and optionally `storyboard.j
   "total_duration": 32.0,
   "agent_list": ["claude", "codex"],     // optional; for agent-row openings (PR #9)
 
+  // === Launch quality bar (required for pure-broll-product-demo) ===
+  "visual_quality_bar": {
+    "animation_target": "launch-grade product motion, not static slideware",
+    "overflow_policy": "resize/reflow/split text before render; never hide broken text",
+    "zoom_policy": "camera moves are target-led; push in for action, pull back only for context/outcome",
+    "reference_energy": "OpenAI/Apple-style calm product reveal: sparse copy, rich micro-interactions"
+  },
+
   // === Narrative (CRITICAL — see references/narrative-arc.md) ===
   "narrative": {
     "protagonist": "Founder who lives meeting-to-meeting",
@@ -124,9 +132,31 @@ Working directory: `storyboard.md` (human-readable) and optionally `storyboard.j
   // === Existing fields ===
   "block": "vfx-iphone-device",
   "block_params": { "screen_content_html": "compositions/screen-script.html" },
+
+  // === Launch-grade motion plan (required for B-roll-like segments) ===
+  "motion": {
+    "quality": "launch-grade product motion",
+    "entrance": "device rises from 0.94 scale with opacity + y transform, power3.out",
+    "continuous": "lavender liquid background drift + subtle screen parallax",
+    "micro_interactions": [
+      "typed prompt appears with caret",
+      "quote highlight sweep",
+      "promise chip materializes"
+    ],
+    "exit": "no manual fade; next segment transition carries the cut"
+  },
+
+  // === Layout safety (required for UI/text-heavy segments) ===
+  "layout_guardrails": {
+    "safe_margin_px": 96,
+    "text_fit": "clamp font sizes; balance/wrap title lines; resize pills before clipping",
+    "max_text_lines": 2,
+    "overflow_policy": "reflow or split content; overflow:hidden only on viewport/device mask"
+  },
+
   "camera_path": [
-    {"at": 0.0, "scale": 0.86},
-    {"at": 5.0, "scale": 1.04}
+    {"at": 0.0, "scale": 0.86, "target": "whole device", "intent": "establish context"},
+    {"at": 5.0, "scale": 1.04, "target": "highlighted quote", "intent": "push in as the product finds the commitment"}
   ],
   "transition_in": "cross-fade",
   "beats": [
@@ -177,6 +207,8 @@ Working directory: `storyboard.md` (human-readable) and optionally `storyboard.j
 ### Segment 1 (B-roll HyperFrames, 0–5s) — kinetic-typography hook
 - **Why this tool:** rhythmic word animation needs precise type control — HyperFrames.
 - **Spec:** chaos words punch-flash in sequence, then resolve to the POLYM wordmark + tagline.
+- **Motion:** entrance / continuous life / micro-interactions / camera intent.
+- **Layout safety:** safe margin, text-fit policy, max lines, and overflow policy.
 
 ### Segment 2 (A-roll Seedance 2.0, 5–12s)
 - **Mode:** r2v (reference video → voice + facial motion) or image+text — see SKILL.md.
@@ -234,5 +266,8 @@ Before presenting to the user, verify:
 - [ ] Cost estimate is shown.
 - [ ] The CTA is the last spoken beat (not buried mid-video).
 - [ ] A recommended length is stated with rationale.
+- [ ] Every B-roll-like segment has a `motion` plan with entrance, continuous motion, and micro-interactions.
+- [ ] Every UI/text segment has `layout_guardrails` with safe margin, text-fit, max lines, and overflow policy.
+- [ ] Every camera keyframe after the first has `target` + `intent`; zoom changes are gradual and tied to the content beat.
 
 If any check fails, fix before presenting.

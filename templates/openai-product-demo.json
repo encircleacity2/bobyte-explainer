@@ -10,6 +10,12 @@
   "height": 1440,
   "content_profile": "single-message",
   "total_duration": 32,
+  "visual_quality_bar": {
+    "animation_target": "launch-grade product motion with layered foreground, background, and micro-interactions",
+    "overflow_policy": "resize, reflow, or split any UI/text before render; never mask broken text",
+    "zoom_policy": "target-led camera moves: push in for product action, pull back only for context/outcome",
+    "reference_energy": "OpenAI-style calm product reveal: sparse copy, rich device micro-interactions, no static slideware"
+  },
 
   "_narrative_note": "REPLACE every 'REPLACE:' placeholder below with real values for YOUR product. See references/narrative-arc.md (8 patterns). The auditor will block render if placeholders remain.",
 
@@ -79,6 +85,22 @@
         { "at": 0.2, "name": "words_enter" },
         { "at": 1.1, "name": "agent_row_enter" }
       ],
+      "motion": {
+        "quality": "launch-grade product motion",
+        "entrance": "two-line title rises 22px with opacity + scale, power3.out",
+        "continuous": "subtle background grain/drift and agent row parallax",
+        "micro_interactions": [
+          "agent chips stagger in",
+          "accent word weight shifts once"
+        ],
+        "exit": "scene transition only; no premature fade-out"
+      },
+      "layout_guardrails": {
+        "safe_margin_px": 120,
+        "text_fit": "title uses clamp() and balanced two-line wrap",
+        "max_text_lines": 2,
+        "overflow_policy": "split title lines or reduce font size before clipping"
+      },
       "title_lines": ["REPLACE: opening line"],
       "transition_in": "cut"
     },
@@ -102,10 +124,10 @@
       "device": "macbook",
       "screen_content_html": "compositions/screen-script.html",
       "camera_path": [
-        { "at": 0.0, "scale": 0.86, "x": 0, "y": 0 },
-        { "at": 8.0, "scale": 0.95 },
-        { "at": 11.0, "scale": 1.04 },
-        { "at": 14.5, "scale": 1.10 }
+        { "at": 0.0, "scale": 0.86, "x": 0, "y": 0, "target": "whole device", "intent": "establish the full product context" },
+        { "at": 8.0, "scale": 0.95, "target": "typed prompt", "intent": "move from context to user action" },
+        { "at": 11.0, "scale": 1.04, "target": "generated response", "intent": "push in as the product starts doing the work" },
+        { "at": 14.5, "scale": 1.10, "target": "success state", "intent": "land on the moment of magic" }
       ],
       "beats": [
         { "at": 0.5, "name": "macbook_enter" },
@@ -115,8 +137,26 @@
         { "at": 11.0, "name": "render_progress_starts" },
         { "at": 13.0, "name": "render_progress_midway" },
         { "at": 14.8, "name": "success" },
-        { "at": 17.0, "name": "success_hold" }
+        { "at": 15.2, "name": "success_hold" }
       ],
+      "motion": {
+        "quality": "launch-grade product motion",
+        "entrance": "device floats in with opacity + y + scale, power3.out",
+        "continuous": "lavender liquid background drift plus 3D device parallax",
+        "micro_interactions": [
+          "typing caret",
+          "response streaming",
+          "progress bar fill",
+          "success highlight"
+        ],
+        "exit": "cross-fade while device remains visible"
+      },
+      "layout_guardrails": {
+        "safe_margin_px": 96,
+        "text_fit": "screen HTML uses fluid grid, clamp() text, and internal scroll for dense output",
+        "max_text_lines": 2,
+        "overflow_policy": "reflow UI labels or shorten demo copy; overflow hidden only on the device screen mask"
+      },
       "transition_in": "cross-fade"
     },
 
@@ -136,8 +176,8 @@
       "device": "macbook",
       "screen_state": "second-moment",
       "camera_path": [
-        { "at": 0.0, "scale": 1.05 },
-        { "at": 7.0, "scale": 1.10 }
+        { "at": 0.0, "scale": 1.02, "target": "same device, new UI state", "intent": "continue from the previous close view without a jump" },
+        { "at": 7.0, "scale": 1.10, "target": "outcome/proof state", "intent": "push in as the outcome becomes visible" }
       ],
       "beats": [
         { "at": 0.4, "name": "view_swap" },
@@ -145,6 +185,23 @@
         { "at": 4.0, "name": "outcome_visible" },
         { "at": 6.0, "name": "hold" }
       ],
+      "motion": {
+        "quality": "launch-grade product motion",
+        "entrance": "UI state swaps with masked slide and highlight sweep, power2.inOut",
+        "continuous": "subtle camera push and background drift continue from prior segment",
+        "micro_interactions": [
+          "view swap",
+          "outcome card resolves",
+          "proof detail highlights"
+        ],
+        "exit": "cross-fade into promise card"
+      },
+      "layout_guardrails": {
+        "safe_margin_px": 96,
+        "text_fit": "outcome labels clamp and wrap inside cards",
+        "max_text_lines": 2,
+        "overflow_policy": "resize proof labels or split into two cards before clipping"
+      },
       "transition_in": "cross-fade"
     },
 
@@ -159,6 +216,22 @@
       "narration": {
         "cue_id": "04 · PROMISE",
         "line": "REPLACE: the memorable line. Reuse narrative.memorable_line."
+      },
+      "motion": {
+        "quality": "launch-grade product motion",
+        "entrance": "promise line builds by weight shift and small y transform",
+        "continuous": "barely perceptible background drift",
+        "micro_interactions": [
+          "accent word gradient fill",
+          "subline settles after 0.35s"
+        ],
+        "exit": "cross-fade to wordmark"
+      },
+      "layout_guardrails": {
+        "safe_margin_px": 120,
+        "text_fit": "promise line uses clamp() and balanced wrap",
+        "max_text_lines": 2,
+        "overflow_policy": "shorten or split the line before clipping"
       },
       "title_lines": ["REPLACE: closing line"],
       "transition_in": "cross-fade"
@@ -175,6 +248,22 @@
       "narration": {
         "silent": true,
         "reason": "let the wordmark land — no narration over a single brand mark"
+      },
+      "motion": {
+        "quality": "launch-grade product motion",
+        "entrance": "wordmark resolves from slight scale + opacity, power3.out",
+        "continuous": "soft halo drift behind mark",
+        "micro_interactions": [
+          "subline appears after the mark lands",
+          "final halo breathes once"
+        ],
+        "exit": "final fade only"
+      },
+      "layout_guardrails": {
+        "safe_margin_px": 120,
+        "text_fit": "wordmark/subline use clamp() and max-width",
+        "max_text_lines": 2,
+        "overflow_policy": "reduce subline length or font size before clipping"
       },
       "wordmark_text": "REPLACE: product name",
       "wordmark_sub": "REPLACE: tagline or url",

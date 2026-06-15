@@ -244,8 +244,8 @@ def overflow_fixes_from_audit(audit_result: dict, storyboard_path: Path) -> list
     sb = json.loads(storyboard_path.read_text())
     aspect = sb.get("aspect_ratio", "1:1")
     canvas_w = {"1:1": 1440, "9:16": 1080, "16:9": 1920}.get(aspect, 1440)
-    # safe scale: 0.95 × canvas / (canvas × 0.86) = 0.95/0.86 ≈ 1.104
-    safe_max = 0.95 / 0.86
+    # Match the production guidance: device/UI pushes should top out around 1.10.
+    safe_max = 1.10
     for f in audit_result.get("findings", []):
         # parse: "segment {id} camera_path at {at}s scale={s} likely pushes content..."
         msg = f.get("message", "")
@@ -336,7 +336,7 @@ def run_post_render(storyboard_path: Path, mp4_path: Path) -> list:
             if "content within" in line and "edge" in line:
                 findings.append(
                     {
-                        "severity": "warning",
+                        "severity": "severe",
                         "code": "edge_intrusion",
                         "message": line.strip().lstrip("·· "),
                     }

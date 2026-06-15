@@ -57,11 +57,11 @@ The skill enforces an 8-pattern narrative discipline before any render runs — 
 ### ✋ 3-option approval gate, in your language
 After drafting the storyboard, the skill shows it inline and asks you in your conversation language: **Approve / Suggest changes / Stop**. No render runs on "looks good 👍". If you suggest changes, the model revises and re-presents — looping until you click approve or stop.
 
-### 🔍 7 validators with auto-fix loop
-Before render and after, a unified `verify.py` runs 7 validators (storyboard audit / overlap / asset existence / camera overflow / render-spec match / audio levels / pixel-edge bleed). Auto-fix mechanically repairs the safe subset (cap camera scales, re-encode keyframes, re-mix audio gain, deconflict tracks) and re-verifies up to N iterations.
+### 🔍 Validators with auto-fix loop
+Before render and after, a unified `verify.py` runs validators for storyboard craft, overlap, assets, launch-grade motion, layout guardrails, zoom logic, camera overflow, render spec, audio levels, and pixel-edge bleed. Auto-fix mechanically repairs the safe subset (cap camera scales, re-encode keyframes, re-mix audio gain, deconflict tracks) and re-verifies up to N iterations.
 
 ### 🎞️ 60fps render by default
-Every video renders at 60fps `--quality high` — visibly smoother than the 30fps default most tools settle for. Motion follows a "house style" reference that bans linear easings and codifies entrance / exit / camera curves so motion craft stays consistent across compositions.
+Every video renders at 60fps `--quality high` — visibly smoother than the 30fps default most tools settle for. Motion follows a "house style" reference that bans linear easings and codifies entrance / exit / camera curves, layout safety, and target-led zooms so motion craft stays consistent across compositions.
 
 ### 🎵 Optional AI background music
 If enabled at onboarding, the skill generates a custom instrumental via Volcengine's music API per video (matching the storyboard's mood), then sidechain-ducks against any voice. Cost: ~$0.20 per track. Disable entirely if you prefer to add music yourself.
@@ -240,7 +240,7 @@ pip install --user requests Pillow volcengine anthropic librosa
 
 The skill runs `scripts/verify.py` automatically at two points:
 - **Pre-render** — after composition generation, before the (slow) render. Catches storyboard issues + asset issues + lint errors. Auto-fix repairs safe issues (cap camera scales, deconflict tracks, etc.) and re-runs.
-- **Post-render** — after the MP4 is produced. Pixel-based overflow detection, render-spec match (resolution/fps/duration vs declared), audio levels in mode-target range, no clipping.
+- **Post-render** — after the MP4 is produced. Pixel-based overflow detection, render-spec match (resolution/fps/duration vs declared), audio levels in mode-target range, no clipping. Severe findings mean the MP4 is not delivery-ready unless explicitly forced as a draft.
 
 Severe issues block delivery; warnings surface in the report but don't auto-block.
 

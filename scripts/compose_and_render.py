@@ -403,9 +403,11 @@ def main():
         if not post_ok:
             print(
                 "Post-render verification has severe issues. The MP4 was produced but "
-                "may have quality problems — review the report above.",
+                "is not delivery-ready — review the report above, fix, and re-render.",
                 file=sys.stderr,
             )
+            if not args.force:
+                sys.exit(1)
 
     print("\n✓ Production complete. Output: dist/main.mp4")
 

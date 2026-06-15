@@ -73,7 +73,7 @@ See `references/motion-house-style.md` for the full ruleset — this preset comp
 The pure-broll-product-demo recipe (see PR #5) defaults to:
 1. **Opening title card** (3-4s) — white bg, two-line bold display text
 2. **Device-mockup long shot #1** (12-18s) — lavender liquid background + MacBook or iPhone with live UI on screen showing the FIRST product moment (the problem-to-solution beat), slow progressive zoom 0.86 → 1.10
-3. **Device-mockup long shot #2** (6-8s) — same device, different UI state — the SECOND product moment (outcome / second feature / proof). Continues camera push to ~1.14
+3. **Device-mockup long shot #2** (6-8s) — same device, different UI state — the SECOND product moment (outcome / second feature / proof). Continues camera push to ~1.10 unless the UI is re-laid out for a tighter crop
 4. **Closing title card** (3-4s) — white bg, two-line text
 5. **Logo-outro / wordmark** (3-5s)
 

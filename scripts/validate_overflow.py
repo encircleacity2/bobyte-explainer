@@ -100,7 +100,7 @@ def main():
         default="14,17,20,23,26",
         help="comma-separated timestamps (seconds) to sample",
     )
-    ap.add_argument("--guard", type=int, default=8, help="edge guard band in px")
+    ap.add_argument("--guard", type=int, default=24, help="edge guard band in px")
     ap.add_argument(
         "--threshold",
         type=int,

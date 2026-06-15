@@ -1,5 +1,13 @@
 # CHANGELOG — explainer-video skill
 
+## Unreleased — launch-grade motion and visual safety pass (2026-06-15)
+
+- `scripts/audit_storyboard.py` now blocks pure-broll product videos that lack a top-level `visual_quality_bar`, per-segment launch-grade `motion`, text/UI `layout_guardrails`, or target-led `camera_path` intent.
+- Camera overflow estimates are now severe and auto-fixable before render; the safe max scale is tightened toward ~1.10 for device/UI shots.
+- `scripts/verify.py` treats post-render edge intrusion as severe, and `scripts/compose_and_render.py` no longer exits successfully when severe post-render issues remain unless forced.
+- `references/motion-house-style.md`, `references/storyboard-format.md`, and `references/production-techniques.md` now codify the production bar: layered animation, safe margins, text fitting, and natural zoom-in/out logic.
+- `templates/openai-product-demo.json` now ships with the required quality bar, motion plans, layout guardrails, and camera keyframe intent/targets.
+
 ## Unreleased — post-Syncore feedback batch (2026-05-28)
 
 Three structural fixes from real-world Syncore demo testing:

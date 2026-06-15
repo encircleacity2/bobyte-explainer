@@ -11,6 +11,9 @@ would otherwise be discovered only after rendering:
   - duplicate-adjacent: two adjacent segments with near-identical content
   - missing-beats: device-mockup / long B-roll segments without beats[]
   - tool-mismatch: A-roll specified but mode != aroll-broll-hybrid
+  - motion-quality: B-roll segments without launch-grade motion plans
+  - layout-guardrails: text/UI scenes without safe margins and fit policy
+  - zoom-logic: camera moves that are abrupt, unmotivated, or overflow-prone
 
 Outputs human-readable warnings + a machine JSON dump so Phase 3 can
 auto-suggest fixes.
@@ -42,6 +45,19 @@ MIN_BEATS_BY_TYPE = {
     "meta-output": 2,  # multi-shot preview from PR #8
     "breather": 1,     # intentional minimal beats — see narrative-arc.md Pattern 6
 }
+
+BROLL_LIKE_TYPES = {
+    "title-card",
+    "device-mockup",
+    "data-viz",
+    "wordmark",
+    "meta-output",
+    "breather",
+    "b-roll-video",
+}
+
+TEXT_FIELDS = ("title_lines", "caption", "wordmark_text", "wordmark_sub")
+ZOOM_OUT_INTENT_TOKENS = ("pullback", "pull-back", "reset", "context", "wide", "overview", "transition", "reveal")
 
 
 def _seg_events(seg):
@@ -192,7 +208,7 @@ def check_overflow_camera(storyboard):
     """Flag camera_path with scale that mathematically pushes content off canvas.
 
     Rough rule: at any scale s, with default macbook width 1240px in a 1440px
-    canvas, max safe scale is ~1.15 (1240 × 1.15 = 1426 px, fits with 7px margin).
+    canvas, max safe scale is ~1.10 (1240 × 1.10 = 1364 px, keeps a real margin).
     """
     findings = []
     aspect = storyboard.get("aspect_ratio", "1:1")
@@ -202,13 +218,178 @@ def check_overflow_camera(storyboard):
             s = kf.get("scale", 1.0)
             # Assume a primary content element ~ 86% of canvas width at scale 1.
             content_at_scale = canvas_w * 0.86 * s
-            if content_at_scale > canvas_w * 0.98:
+            if content_at_scale > canvas_w * 0.95:
                 findings.append(
                     f"segment {seg['id']} camera_path at {kf.get('at', '?')}s "
                     f"scale={s} likely pushes content off canvas (estimated "
                     f"{int(content_at_scale)}px in {canvas_w}px-wide frame). "
-                    f"Reduce max scale to ~1.15 or shift transform-origin."
+                    f"Reduce max scale to ~1.10, re-layout the device, or shift transform-origin."
                 )
+    return findings
+
+
+def _is_broll_like(seg):
+    return (
+        seg.get("type") in BROLL_LIKE_TYPES
+        or seg.get("tool") == "hyperframes"
+    ) and seg.get("type") != "a-roll"
+
+
+def check_motion_quality(storyboard):
+    """Require a declared launch-grade motion plan for every B-roll-like segment."""
+    findings = []
+    if storyboard.get("mode") != "pure-broll-product-demo":
+        return findings
+
+    bar = storyboard.get("visual_quality_bar")
+    if not isinstance(bar, dict):
+        findings.append(
+            "missing visual_quality_bar — declare animation_target, overflow_policy, "
+            "zoom_policy, and reference_energy for product-launch output"
+        )
+    else:
+        for key in ("animation_target", "overflow_policy", "zoom_policy"):
+            if not bar.get(key):
+                findings.append(f"visual_quality_bar missing {key}")
+
+    for seg in storyboard["segments"]:
+        if not _is_broll_like(seg):
+            continue
+        motion = seg.get("motion")
+        if not isinstance(motion, dict):
+            findings.append(
+                f"segment {seg['id']} missing motion plan — declare entrance, "
+                f"continuous/background motion, and micro_interactions before render"
+            )
+            continue
+
+        missing = [
+            key for key in ("entrance", "continuous", "micro_interactions")
+            if not motion.get(key)
+        ]
+        if missing:
+            findings.append(
+                f"segment {seg['id']} motion plan missing {', '.join(missing)} — "
+                f"product-launch scenes need layered motion, not static cards"
+            )
+
+        quality = str(motion.get("quality", "")).lower()
+        if not any(token in quality for token in ("launch", "product", "premium")):
+            findings.append(
+                f"segment {seg['id']} motion.quality should name the target bar "
+                f"(e.g. 'launch-grade product motion')"
+            )
+    return findings
+
+
+def _segment_has_text(seg):
+    for field in TEXT_FIELDS:
+        value = seg.get(field)
+        if isinstance(value, str) and value.strip():
+            return True
+        if isinstance(value, list) and any(str(v).strip() for v in value):
+            return True
+    return bool(seg.get("narration", {}).get("line")) and seg.get("type") in {"title-card", "wordmark", "data-viz"}
+
+
+def check_layout_guardrails(storyboard):
+    """Require explicit safe-zone and text fitting rules for UI/text-heavy scenes."""
+    findings = []
+    aspect = storyboard.get("aspect_ratio", "1:1")
+    min_margin = 120 if aspect == "9:16" else 96
+
+    for seg in storyboard["segments"]:
+        needs_guardrails = seg.get("type") in {"device-mockup", "title-card", "wordmark", "data-viz"} or _segment_has_text(seg)
+        if not needs_guardrails:
+            continue
+
+        guard = seg.get("layout_guardrails")
+        if not isinstance(guard, dict):
+            findings.append(
+                f"segment {seg['id']} missing layout_guardrails — declare safe_margin_px, "
+                f"text_fit, max_text_lines, and overflow_policy"
+            )
+            continue
+
+        safe_margin = guard.get("safe_margin_px")
+        if safe_margin is None:
+            findings.append(f"segment {seg['id']} layout_guardrails missing safe_margin_px")
+        elif float(safe_margin) < min_margin:
+            findings.append(
+                f"segment {seg['id']} safe_margin_px={safe_margin} is below the "
+                f"{min_margin}px minimum for {aspect}; increase margins before render"
+            )
+
+        for key in ("text_fit", "overflow_policy"):
+            if not guard.get(key):
+                findings.append(f"segment {seg['id']} layout_guardrails missing {key}")
+
+        max_lines = guard.get("max_text_lines")
+        if _segment_has_text(seg) and not max_lines:
+            findings.append(
+                f"segment {seg['id']} has visible text but no max_text_lines — "
+                f"set a line cap and resize/reflow policy"
+            )
+    return findings
+
+
+def check_zoom_logic(storyboard):
+    """Flag camera moves that are not motivated by the content beat."""
+    findings = []
+    for seg in storyboard["segments"]:
+        cam = seg.get("camera_path", [])
+        if len(cam) < 2:
+            continue
+
+        prev = cam[0]
+        directions = []
+        for idx, kf in enumerate(cam):
+            if idx == 0:
+                prev = kf
+                continue
+            at = kf.get("at")
+            scale = float(kf.get("scale", 1.0))
+            prev_scale = float(prev.get("scale", 1.0))
+            delta = scale - prev_scale
+            dt = float(at if at is not None else 0) - float(prev.get("at", 0))
+            intent = str(kf.get("intent", "") or "").strip()
+            target = str(kf.get("target", "") or "").strip()
+
+            if not intent or not target:
+                findings.append(
+                    f"segment {seg['id']} camera_path keyframe at {at}s missing "
+                    f"intent/target — every zoom must explain what it reveals"
+                )
+
+            if abs(delta) > 0.16:
+                findings.append(
+                    f"segment {seg['id']} camera jump at {at}s changes scale by "
+                    f"{delta:+.2f}; keep adjacent zoom steps ≤ 0.16 for natural motion"
+                )
+            if abs(delta) > 0.10 and dt < 1.5:
+                findings.append(
+                    f"segment {seg['id']} camera move at {at}s changes scale by "
+                    f"{delta:+.2f} in {dt:.1f}s — too abrupt for launch-grade zoom"
+                )
+
+            if delta < -0.015:
+                reason = f"{intent} {kf.get('reason', '')}".lower()
+                if not any(token in reason for token in ZOOM_OUT_INTENT_TOKENS):
+                    findings.append(
+                        f"segment {seg['id']} zooms out at {at}s without a logical "
+                        f"pullback/reset/context intent"
+                    )
+
+            if abs(delta) > 0.015:
+                directions.append(1 if delta > 0 else -1)
+            prev = kf
+
+        flips = sum(1 for a, b in zip(directions, directions[1:]) if a != b)
+        if flips > 1:
+            findings.append(
+                f"segment {seg['id']} camera_path changes zoom direction {flips} times — "
+                f"avoid yo-yo zoom unless the segment explicitly transitions context"
+            )
     return findings
 
 
@@ -431,6 +612,9 @@ def audit(storyboard, profile_override=None):
         "duplicates": [],
         "mode": [],
         "overflow": [],
+        "motion_quality": [],
+        "layout_guardrails": [],
+        "zoom_logic": [],
         "narrative": [],
         "canon": [],
         "cast": [],
@@ -449,6 +633,9 @@ def audit(storyboard, profile_override=None):
     findings["duplicates"].extend(check_adjacent_duplicates(storyboard["segments"]))
     findings["mode"].extend(check_mode_consistency(storyboard))
     findings["overflow"].extend(check_overflow_camera(storyboard))
+    findings["motion_quality"].extend(check_motion_quality(storyboard))
+    findings["layout_guardrails"].extend(check_layout_guardrails(storyboard))
+    findings["zoom_logic"].extend(check_zoom_logic(storyboard))
     findings["narrative"].extend(check_narrative_arc(storyboard))
     findings["canon"].extend(check_canon(storyboard))
     findings["cast"].extend(check_cast(storyboard))
@@ -473,7 +660,10 @@ SEVERITY_BY_CATEGORY = {
     "duration": "warning",
     "duplicates": "warning",
     "mode": "severe",         # mode mismatches break the render pipeline
-    "overflow": "warning",    # camera overflow is estimable, post-render validator confirms
+    "overflow": "severe",     # pre-render overflow estimate can be mechanically capped
+    "motion_quality": "severe",
+    "layout_guardrails": "severe",
+    "zoom_logic": "severe",
     "narrative": "severe",    # storyboard without a story is a render-the-wrong-thing risk
     "canon": "severe",        # canon < 3 entities = story too abstract to land
     "cast": "warning",        # abstract protagonist is bad craft but not always a blocker

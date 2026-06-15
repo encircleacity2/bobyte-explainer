@@ -78,6 +78,44 @@ Static backgrounds read as flat. Add at least one of:
 
 Never have zero motion in a static B-roll scene for >2s.
 
+## 9. Launch-grade motion stack
+
+Every pure-broll product segment needs four motion layers in the storyboard before GSAP is written:
+
+1. **Entrance:** the main subject arrives with opacity + transform, not opacity alone.
+2. **Continuous life:** background drift, subtle parallax, cursor/caret motion, chart shimmer, or device depth motion.
+3. **Product micro-interaction:** one concrete product action changes the screen state: click, type, select, highlight, generate, progress, send, save.
+4. **Camera intent:** the camera move explains what the viewer should notice next.
+
+If a segment cannot name these layers, it is probably a static slide, not a product-launch scene. Add them to `segment.motion` in `storyboard.json` so `audit_storyboard.py` can block weak segments before render.
+
+## 10. Camera and zoom logic
+
+Zoom is not decoration. Tie every camera keyframe after the first to an on-screen target and a reason:
+
+```jsonc
+{"at": 8.0, "scale": 0.96, "target": "typed prompt", "intent": "move from context to user action"}
+```
+
+Rules:
+
+- Start wider for context, then push in as the product does something meaningful.
+- Use pull-backs only for context reset, outcome reveal, or final promise. Declare that in `intent`.
+- Adjacent scale changes should stay within **0.16**. Larger jumps feel like accidental cropping.
+- For device/UI shots, keep max scale around **1.10** unless the screen layout was explicitly rebuilt for a tighter crop.
+- Use `power1.inOut` or `power2.inOut`; camera moves under 1.5s should not change scale by more than 0.10.
+- Avoid zoom-in → zoom-out → zoom-in "yo-yo" paths. One direction change is enough for a segment.
+
+## 11. Layout and text safety
+
+No visible UI or text overflow is acceptable in a product video. Design for the render target, not a browser tab:
+
+- Keep critical content inside at least **96px** safe margin for 1:1 / 16:9, **120px** for 9:16.
+- Use `clamp()`, `minmax()`, `max-width`, `text-wrap: balance`, and explicit line caps for title/caption text.
+- Prefer reflow, resizing, or splitting a line over hiding overflow. `overflow:hidden` is only acceptable on the outer viewport, device mask, or intentionally clipped media.
+- Buttons, pills, tabs, code blocks, and terminal lines need their own fit rules. Do not assume "short demo text" will stay short after the user customizes it.
+- Verify at the tightest camera scale, not only at scale 1.0.
+
 ---
 
 ## Quick checklist before render
@@ -88,5 +126,8 @@ Never have zero motion in a static B-roll scene for >2s.
 - [ ] Holds of any element are 0.6–2.5s
 - [ ] At most one exit-fade tween per scene; final scene only
 - [ ] No background is fully static for >2s
+- [ ] Every pure-broll segment has `motion.entrance`, `motion.continuous`, and `motion.micro_interactions`
+- [ ] Every camera keyframe names `target` and `intent`
+- [ ] Text/UI safe margins and fit policy are declared in `layout_guardrails`
 
 If any fails, fix before rendering. The render takes minutes; a re-render after motion polish costs you those minutes per round.

@@ -32,6 +32,18 @@ When in doubt, look at the last user message and mirror its primary language. If
 
 ---
 
+## Codex execution contract (read before running scripts)
+
+Codex must run this as a production video pipeline, not ad hoc slides. Before authoring, load `references/narrative-arc.md`, `storyboard-format.md`,
+`motion-house-style.md`, and `production-techniques.md`. Never ship silent,
+30fps, static, or placeholder clips when the storyboard asks for voice, music,
+or launch-grade B-roll; if TTS/music fails, stop and report it.
+HyperFrames segments need real `scene_html` / `html` plus GSAP timing, or a hand-authored `index.html`; `compose_and_render.py` refuses TODO/stub scenes.
+Final delivery is blocked by fps < 59.5, missing expected audio, JSON written as
+audio, severe post checks, or sampled-frame overlap/overflow/cramped typography.
+
+---
+
 ## STEP 0 — Onboarding check (run this FIRST, on every invocation)
 
 Before doing anything else, check whether the user has onboarded:

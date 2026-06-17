@@ -84,18 +84,43 @@ For personal-brand videos where you want to appear on camera: hybrid mode genera
 Codex:
 
 ```bash
-git clone https://github.com/encircleacity2/bobyte-explainer.git \
+git clone --depth 1 https://github.com/encircleacity2/bobyte-explainer.git \
   ~/.codex/skills/explainer-video
 ```
 
 Claude Code:
 
 ```bash
-git clone https://github.com/encircleacity2/bobyte-explainer.git \
+git clone --depth 1 https://github.com/encircleacity2/bobyte-explainer.git \
   ~/.claude/skills/explainer-video
 ```
 
 Restart your agent session — the skill is auto-discovered from `SKILL.md`.
+
+If you already installed the skill, update it:
+
+```bash
+git -C ~/.codex/skills/explainer-video pull --ff-only
+```
+
+Then restart Codex so it reloads the updated `SKILL.md`.
+
+### Codex standard behavior
+
+After installation, a Codex run should not produce silent 30fps slides or static
+placeholder scenes. A healthy run will:
+
+1. Ask/confirm mode, visual identity, and distribution channel.
+2. Draft a storyboard and wait for explicit approval before rendering.
+3. Generate real TTS when narration is enabled; BytePlus streaming JSON is decoded
+   into audio before normalization.
+4. Author real HyperFrames scene HTML/GSAP. The default renderer refuses TODO/stub
+   B-roll scenes instead of quietly rendering a bad video.
+5. Render at 60fps high quality, run render/audio checks, and inspect sampled
+   frames for overlap, overflow, cramped spacing, and broken typography.
+
+If Codex skips those steps, the skill is stale or the workflow was bypassed. Pull
+the latest version, restart the agent, and retry from the storyboard stage.
 
 ### First run: ~3-minute onboarding
 

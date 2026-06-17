@@ -158,6 +158,7 @@ def generate_composition(storyboard, project_root, template_path, skill_root=Non
 
     elements = []
     timeline = []
+    missing_scene_html = []
 
     for seg in storyboard["segments"]:
         sid = seg["id"]
@@ -213,22 +214,30 @@ def generate_composition(storyboard, project_root, template_path, skill_root=Non
                 )
 
         elif tool == "hyperframes":
-            # This is where we'd render programmatic scene from spec.
-            # For complex specs, leave a stub the user/agent edits manually.
+            scene_html = seg.get("scene_html") or seg.get("html")
+            if not scene_html:
+                missing_scene_html.append(sid)
+                continue
             elements.append(f"""
       <!-- HYPERFRAMES_SCENE id={sid} duration={duration} -->
-      <div id="{sid}" class="clip hyperframes-scene"
-           data-start="{start}" data-duration="{duration}" data-track-index="1"
-           style="background:#0a0a0a;color:#fff;display:flex;align-items:center;justify-content:center;font-size:32px;">
-        <!-- TODO: implement scene per storyboard spec -->
-        Scene {sid}: {seg.get('intent', '')[:50]}
-      </div>""")
+{scene_html}""")
+            if seg.get("timeline_js"):
+                timeline.append(seg["timeline_js"])
 
             if voice.get("mode") == "tts":
                 audio = voice.get("src") or f"assets/audio/{sid}.m4a"
                 elements.append(f"""
       <audio id="{sid}-vo" class="clip" data-start="{start}" data-duration="{duration}"
              data-track-index="3" src="{audio}"></audio>""")
+
+    if missing_scene_html:
+        joined = ", ".join(missing_scene_html)
+        raise SystemExit(
+            "Missing scene_html/html for HyperFrames segment(s): "
+            f"{joined}. Refusing to generate placeholder scenes. "
+            "Author launch-grade HTML/GSAP for each segment, or render from a "
+            "custom index.html and run the post-render validators."
+        )
 
     # Inject into template — fill all placeholders (PR #1 + #12 — templated dims + style)
     template = template.replace("<!-- ELEMENTS_PLACEHOLDER -->", "\n".join(elements))

@@ -11,6 +11,7 @@ Secrets are read from environment variables or ~/.explainer-video/config.json. T
 never prints full keys. Output is normalized with ffmpeg when available.
 """
 import argparse
+import base64
 import json
 import os
 import subprocess
@@ -63,6 +64,81 @@ def normalize_audio(src, dst):
         return False
 
 
+def _looks_like_audio_bytes(data):
+    """Return True when the payload is already an audio container/bitstream."""
+    if data.startswith((b"ID3", b"RIFF", b"fLaC", b"OggS")):
+        return True
+    return len(data) > 2 and data[0] == 0xFF and (data[1] & 0xE0) == 0xE0
+
+
+def _iter_json_objects(text):
+    """Parse newline-delimited or concatenated JSON objects."""
+    decoder = json.JSONDecoder()
+    idx = 0
+    while idx < len(text):
+        while idx < len(text) and text[idx].isspace():
+            idx += 1
+        if idx >= len(text):
+            break
+        obj, end = decoder.raw_decode(text, idx)
+        yield obj
+        idx = end
+
+
+def _decode_audio_field(value):
+    if not value:
+        return b""
+    if isinstance(value, str):
+        return base64.b64decode(value, validate=False)
+    if isinstance(value, dict):
+        for key in ("audio", "audio_data", "audio_base64", "data"):
+            decoded = _decode_audio_field(value.get(key))
+            if decoded:
+                return decoded
+    return b""
+
+
+def decode_byteplus_tts_payload(content):
+    """Decode BytePlus TTS responses.
+
+    The unidirectional endpoint may return raw audio bytes, a single JSON object,
+    newline-delimited JSON chunks, or concatenated JSON objects. Audio chunks are
+    base64-encoded in the `data` field when streamed.
+    """
+    if _looks_like_audio_bytes(content):
+        return content
+
+    try:
+        text = content.decode("utf-8")
+    except UnicodeDecodeError:
+        return content
+
+    audio = bytearray()
+    last_error = ""
+    try:
+        objects = list(_iter_json_objects(text))
+    except json.JSONDecodeError:
+        return content
+
+    for obj in objects:
+        if not isinstance(obj, dict):
+            continue
+        code = obj.get("code")
+        message = obj.get("message")
+        if code not in (None, 0, 20000000) and message:
+            last_error = f"BytePlus TTS returned code {code}: {message}"
+        chunk = _decode_audio_field(obj.get("data"))
+        if chunk:
+            audio.extend(chunk)
+
+    if audio:
+        return bytes(audio)
+    if last_error:
+        raise RuntimeError(last_error)
+    preview = text[:500].replace("\n", "\\n")
+    raise RuntimeError(f"BytePlus TTS response did not contain audio data: {preview}")
+
+
 def byteplus_tts(text, speaker, api_key):
     if not api_key:
         raise SystemExit("Missing BytePlus TTS key. Set BYTEPLUS_TTS_API_KEY or config.byteplus_tts_api_key.")
@@ -90,7 +166,7 @@ def byteplus_tts(text, speaker, api_key):
     }
     r = requests.post(url, headers=headers, json=payload, timeout=120)
     r.raise_for_status()
-    return r.content, ".mp3"
+    return decode_byteplus_tts_payload(r.content), ".mp3"
 
 
 def elevenlabs_tts(text, voice_id, api_key):

@@ -4,20 +4,84 @@ Quick tests to verify each wave works before deciding which PRs to push to GitHu
 
 ## Setup
 
+For Codex installs, use:
+
+```bash
+export SKILL_DIR="${HOME}/.codex/skills/explainer-video"
+git -C "$SKILL_DIR" pull --ff-only
+```
+
+For Claude Code installs, replace the first line with:
+
+```bash
+export SKILL_DIR="${HOME}/.claude/skills/explainer-video"
+```
+
 ```bash
 # Confirm files exist
-ls ~/.claude/skills/explainer-video/scripts/audit_storyboard.py
-ls ~/.claude/skills/explainer-video/scripts/fetch_registry.py
-ls ~/.claude/skills/explainer-video/scripts/validate_overflow.py
-ls ~/.claude/skills/explainer-video/scripts/synthesize_screen_ui.py
-ls ~/.claude/skills/explainer-video/scripts/beat_align.py
-ls ~/.claude/skills/explainer-video/templates/agent-chip-row.html
-ls ~/.claude/skills/explainer-video/templates/openai-product-demo.json
-ls ~/.claude/skills/explainer-video/assets/style-presets/openai-clean/design.md
-ls ~/.claude/skills/explainer-video/assets/macos-window-chrome.html
+ls "$SKILL_DIR/scripts/audit_storyboard.py"
+ls "$SKILL_DIR/scripts/fetch_registry.py"
+ls "$SKILL_DIR/scripts/validate_overflow.py"
+ls "$SKILL_DIR/scripts/synthesize_screen_ui.py"
+ls "$SKILL_DIR/scripts/beat_align.py"
+ls "$SKILL_DIR/templates/agent-chip-row.html"
+ls "$SKILL_DIR/templates/openai-product-demo.json"
+ls "$SKILL_DIR/assets/style-presets/openai-clean/design.md"
+ls "$SKILL_DIR/assets/macos-window-chrome.html"
 ```
 
 All 9 should exist after the refactor.
+
+## Codex regression tests
+
+### BytePlus TTS streaming JSON decodes to audio
+
+```bash
+cd "$SKILL_DIR"
+python3 - <<'EOF'
+import base64
+from scripts.generate_tts import decode_byteplus_tts_payload
+
+payload = (
+    b'{"code":0,"message":"","data":"'
+    + base64.b64encode(b"ID3demo-audio")
+    + b'"}\n{"code":20000000,"message":"OK","data":null}\n'
+)
+assert decode_byteplus_tts_payload(payload) == b"ID3demo-audio"
+print("ok")
+EOF
+```
+
+Expected: `ok`. If this fails, Codex may write JSON bytes as `.mp3` and later
+ship a silent or broken video.
+
+### Renderer refuses placeholder B-roll scenes
+
+```bash
+cd "$SKILL_DIR"
+cat > /tmp/stub-scene-storyboard.json <<'EOF'
+{
+  "mode": "pure-broll-product-demo",
+  "aspect_ratio": "16:9",
+  "total_duration": 3,
+  "segments": [
+    {
+      "id": "s1",
+      "start": 0,
+      "duration": 3,
+      "type": "title-card",
+      "tool": "hyperframes",
+      "intent": "This should not render as a placeholder"
+    }
+  ]
+}
+EOF
+python3 scripts/compose_and_render.py /tmp/stub-scene-storyboard.json \
+  --project-root /tmp --skip-validate --skip-render
+```
+
+Expected: exits non-zero with `Missing scene_html/html`. This is intentional:
+agents must author real scene HTML/GSAP or use a custom `index.html`.
 
 ## Wave 1 tests (PRs 2, 9, 7, 11)
 
